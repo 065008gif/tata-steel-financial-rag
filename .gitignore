@@ -16,3 +16,7 @@ qdrant_storage/
 # Editor / OS clutter
 .vscode/
 .DS_Store
+
+# Generated pipeline data (rebuilt from PDFs)
+data/interim/
+data/processed/
