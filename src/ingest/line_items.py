@@ -35,54 +35,67 @@ def parse_num(s):
 
 def extract(doc, report, scope, stmt, pages, labels):
     end = int(report[2:6]) + 1
-    cur_fy, pri_fy = fy_of(end), fy_of(end - 1)
     lines = []
     for pg in pages:
         for t, v in page_lines(doc, pg):
-            if lines and not lines[-1][2] and t[:1].islower() and lines[-1][0] == pg:   # wrapped label
-                t = lines.pop()[1] + " " + t
+            if lines and lines[-1][0] == pg:
+                _, pt, pv = lines[-1]
+                if not t.strip() and v and not pv:                 # values on their own line -> label above
+                    lines[-1] = (pg, pt, v); continue
+                if t[:1].islower() and (not pv or not v):         # wrapped label continuation
+                    lines[-1] = (pg, pt + " " + t, pv or v); continue
             lines.append((pg, t, v))
-    swap = False
+    restated = "restated" in " ".join(t.lower() for _, t, _ in lines[:25])
+    K = min(3, max((len(v) for _, _, v in lines), default=0))       # number of value columns (2, or 3 if restated)
+    full = [v for _, _, v in lines if len(v) == K]
+    if K < 2 or not full: return [], [], {"error": f"no {K}-value lines"}
+    cx = [statistics.median(v[i][0] for v in full) for i in range(K)]
+    order = [fy_of(end - i) for i in range(K)]                       # leftmost column = current year
     for _, t, _ in lines[:20]:
         ys = [int(y) for y in re.findall(r"20\d\d", t)]
-        if len(ys) >= 2 and "march" in t.lower():
-            swap = ys[0] < ys[1]; break
-    order = [pri_fy, cur_fy] if swap else [cur_fy, pri_fy]
-    two = [v for _, _, v in lines if len(v) == 2]
-    if not two: return [], [], {"error": "no two-value lines"}
-    cx = [statistics.median(v[0][0] for v in two), statistics.median(v[1][0] for v in two)]
-    recs, checks, stats, stack, sums, stopped = [], [], {"one_value": 0, "multi_value": 0}, [], {}, set()
+        if len(ys) >= 2 and re.search(r"march|april", t, re.I):
+            if ys[0] < ys[1]: order.reverse()
+            break
+    cur = fy_of(end)
+    recs, checks, stack, sums, stopped, prev = [], [], [], {}, set(), ""
+    stats = {"columns": K, "restated": restated, "partial_rows": 0, "extra_values": 0, "unlabelled_subtotals": 0}
     for pg, t, vals in lines:
         if pg in stopped: continue
         if STOP.match(t): stopped.add(pg); continue
         toks = [w for w in t.split() if not MARKER.match(w)]
         while toks and REF.match(toks[-1]): toks.pop()
-        label = " ".join(toks).strip(" :")
-        if not label or IGNORE.match(label): continue
+        label, synthetic = " ".join(toks).strip(" :"), False
+        if not label:
+            if not vals: continue
+            label, synthetic = f"Unlabelled subtotal (after: {prev})", True
+            stats["unlabelled_subtotals"] += 1
+        if IGNORE.match(label): continue
         if not vals:
             if TOP.match(label): stack, sums = [label], {}
             else: stack = stack[:1] + [label]
             continue
-        if len(vals) > 2: stats["multi_value"] += 1; vals = vals[-2:]
-        if len(vals) == 2:
-            assigned = {order[0]: vals[0][1], order[1]: vals[1][1]}
+        if len(vals) > K: stats["extra_values"] += 1; vals = vals[-K:]
+        if len(vals) == K:
+            assigned = {order[i]: vals[i][1] for i in range(K)}
         else:
-            stats["one_value"] += 1
-            x, s = vals[0]
-            assigned = {order[0 if abs(x - cx[0]) <= abs(x - cx[1]) else 1]: s}
-        parsed = {fy: parse_num(s) for fy, s in assigned.items()}
+            stats["partial_rows"] += 1
+            assigned = {order[min(range(K), key=lambda k: abs(x - cx[k]))]: sv for x, sv in vals}
+        parsed = {fy: parse_num(sv) for fy, sv in assigned.items()}
         for fy, v in parsed.items():
             if v is not None:
                 recs.append(dict(report=report, fiscal_year=fy, scope=scope, statement=stmt, page=pg,
-                                 page_label=labels.get(pg), path=" > ".join(stack), line_item=label,
-                                 value=v, unit="INR crore", source="coordinate"))
+                                 page_label=labels.get(pg), path=" > ".join(stack), line_item=label, value=v,
+                                 unit="INR crore", restated=restated and fy != cur, synthetic_label=synthetic,
+                                 source="coordinate"))
+        if synthetic: continue
+        prev = label
         low, sec = label.lower(), (stack[0].lower() if stack else "")
-        if low.startswith("total"):
+        if low.startswith("total") and not low.startswith("total outstanding dues"):
             if sec in CHECK and low == f"total {sec}":
                 for fy, v in parsed.items():
                     if v is not None:
-                        s = round(sums.get(fy, 0.0), 2)
-                        checks.append((f"{report} | {scope:12} | {fy} | {label}", s, v, abs(s - v) < 0.02))
+                        sm = round(sums.get(fy, 0.0), 2)
+                        checks.append((f"{report} | {scope:12} | {fy} | {label}", sm, v, abs(sm - v) < 0.02))
             stack = [] if sec and sec in low else stack[:1]
             if not stack: sums = {}
         elif sec in CHECK:
@@ -105,6 +118,27 @@ for path in sorted(Path("data/raw").glob("TataSteel_FY*.pdf")):
             r, c, s = extract(doc, report, scope, stmt, pages, labels)
             records += r; checks += c
             print(f"  {report} {scope:12} {stmt:16} pages {pages[0]}-{pages[-1]}: {len(r):4} | {s}")
+
+# Restatement handling: prefer the latest report containing each year (comparable basis),
+# and flag any value that differs from the year's own original report.
+latest, original = {}, {}
+for r in records:
+    k = (r["scope"], r["statement"], r["fiscal_year"])
+    latest[k] = max(latest.get(k, ""), r["report"])
+own = {r["fiscal_year"] for r in records if r["report"] == r["fiscal_year"]}
+for r in records:
+    ok_report = r["report"] == r["fiscal_year"] or (r["fiscal_year"] not in own and r["report"] == min(
+        x["report"] for x in records if x["fiscal_year"] == r["fiscal_year"]))
+    if ok_report:
+        original[(r["scope"], r["statement"], r["fiscal_year"], r["path"], r["line_item"])] = r["value"]
+n_diff = 0
+for r in records:
+    r["preferred"] = r["report"] == latest[(r["scope"], r["statement"], r["fiscal_year"])]
+    o = original.get((r["scope"], r["statement"], r["fiscal_year"], r["path"], r["line_item"]))
+    r["original_value"] = o
+    r["differs_from_original"] = o is not None and abs(o - r["value"]) > 0.01
+    n_diff += r["differs_from_original"]
+print(f"Restatement pass: {sum(r['preferred'] for r in records)} preferred records, {n_diff} differ from original report")
 
 with open(OUT / "line_items.jsonl", "w") as f:
     for r in records: f.write(json.dumps(r) + "\n")
