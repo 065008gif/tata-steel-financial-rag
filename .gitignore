@@ -20,3 +20,4 @@ qdrant_storage/
 # Generated pipeline data (rebuilt from PDFs)
 data/interim/
 data/processed/
+.cache/
