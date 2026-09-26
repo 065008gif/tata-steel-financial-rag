@@ -1,0 +1,52 @@
+nohup: ignoring input
+TIER 1 - FILTERED RETRIEVAL (search only, correct filters given)
+  key audit matters            gold=['F131'] got=['F131', 'F130', 'F131', 'F134'] rank=1
+  current borrowings           gold=['F204'] got=['F204', 'F247', 'F204', 'F244'] rank=1
+  trade receivables            gold=['F70', 'F71'] got=['F71', 'F71', 'F71', 'F70'] rank=1
+  total current liabilities    gold=['F143'] got=['F143', 'F142', 'F148', 'F149'] rank=1
+  Hit Rate@4 = 1.000   MRR = 1.000
+
+TIER 2 - END-TO-END AGENT
+  A1  lookup         numeric=1/1    cite=1/1    mention=-    abstention=OK   grounded=1/1      23s
+  A2  lookup         numeric=1/1    cite=1/1    mention=-    abstention=OK   grounded=1/1      5s
+  A3  lookup         numeric=1/1    cite=1/1    mention=-    abstention=OK   grounded=1/1      5s
+  A4  lookup         numeric=1/1    cite=1/1    mention=-    abstention=OK   grounded=1/1      4s
+  A5  lookup         numeric=1/1    cite=1/1    mention=-    abstention=OK   grounded=1/1      4s
+  A6  lookup         numeric=1/1    cite=1/1    mention=-    abstention=OK   grounded=3/3      7s
+  A7  table_grounded numeric=4/4    cite=1/1    mention=-    abstention=OK   grounded=7/7      9s
+  B1  trend          numeric=5/5    cite=4/4    mention=-    abstention=OK   grounded=17/17    11s
+  B2  trend          numeric=4/4    cite=3/3    mention=-    abstention=OK   grounded=48/48    8s
+  B3  trend          numeric=4/4    cite=3/3    mention=-    abstention=OK   grounded=78/78    21s
+  C1  ratio          numeric=4/4    cite=6/6    mention=-    abstention=OK   grounded=91/91    13s
+  C2  ratio          numeric=4/4    cite=3/3    mention=-    abstention=OK   grounded=56/56    9s
+  C3  ratio          numeric=4/4    cite=0/3    mention=-    abstention=OK   grounded=24/24    7s
+  C4  ratio          numeric=1/1    cite=0/2    mention=-    abstention=OK   grounded=35/35    14s
+  C5  ratio          numeric=2/2    cite=2/2    mention=-    abstention=OK   grounded=9/9      6s
+  D1  yoy            numeric=4/4    cite=1/1    mention=-    abstention=OK   grounded=31/31    14s
+  D2  yoy            numeric=2/2    cite=2/2    mention=-    abstention=OK   grounded=35/35    21s
+  E1  composite      numeric=6/6    cite=6/6    mention=-    abstention=OK   grounded=175/175  38s
+  F1  segment        numeric=3/3    cite=1/1    mention=3/3  abstention=OK   grounded=3/3      4s
+  G1  risk_evolution numeric=-      cite=-      mention=-    abstention=OK   grounded=0/0      14s
+  G2  narrative      numeric=-      cite=-      mention=0/1  abstention=OK   grounded=10/10    18s
+  G3  narrative      numeric=-      cite=1/1    mention=2/2  abstention=OK   grounded=3/3      7s
+  H1  scope_trap     numeric=1/1    cite=1/1    mention=1/1  abstention=OK   grounded=1/1      4s
+  H2  abstain        numeric=-      cite=-      mention=-    abstention=OK   grounded=2/2      8s
+  H3  abstain        numeric=-      cite=-      mention=-    abstention=OK   grounded=0/0      3s
+  H4  abstain        numeric=-      cite=-      mention=-    abstention=OK   grounded=0/0      3s
+  I1  verdict        numeric=-      cite=-      mention=3/3  abstention=OK   grounded=136/136  38s
+  E2  composite      numeric=2/2    cite=3/3    mention=1/1  abstention=OK   grounded=39/39    6s
+  E3  composite      numeric=-      cite=3/3    mention=2/2  abstention=OK   grounded=17/17    7s
+  E4  composite      numeric=1/1    cite=2/2    mention=1/1  abstention=OK   grounded=12/12    4s
+
+SUMMARY
+  tier1_filtered_retrieval           {'hit_rate@4': 1.0, 'mrr': 1.0}
+  numeric_questions_fully_correct    22/22
+  expected_numbers_found             57/57
+  source_pages_retrieved             24/24 questions
+  expected_pages_cited               48/53
+  abstention_correct                 30/30
+  answers_fully_grounded             30/30
+  avg_seconds                        11
+  avg_tool_calls                     2.9
+
+Saved eval/results/run_20260927_0136.json and answers_20260927_0136.md

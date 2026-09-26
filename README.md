@@ -8,16 +8,17 @@ for every figure, verifying every number against the source data, and refusing q
 
 **Team:** Backend — Akshit Kansal · Frontend — teammate (see `frontend/`)
 
-## Results (final evaluation, 27 questions — details in `eval/EVALUATION_NOTES.md`)
+## Results (final evaluation, 30 questions — details in `eval/EVALUATION_NOTES.md`)
 
 | Tier | Result |
 |---|---|
 | Filtered retrieval (search only) | Hit Rate@4 = 1.00, MRR = 1.00 |
-| Numeric accuracy | 20/20 numeric questions fully correct; 54/54 expected numbers found |
-| Source pages retrieved / cited | 21/21 questions / 43 of 45 expected pages cited |
-| Abstention (forecasts, other companies, years not covered) | 27/27 |
-| Automatic numeric grounding | 25/27 answers fully grounded |
-| Ground-truth check | all 90 answer-key input figures found printed on their cited PDF pages |
+| Numeric accuracy | 22/22 numeric questions fully correct; 57/57 expected numbers found |
+| Source pages retrieved / cited | 24/24 questions / 48 of 53 expected pages cited |
+| Abstention (forecasts, other companies, years not covered) | 30/30 |
+| Automatic numeric grounding | 30/30 answers fully grounded |
+| Ground-truth check | all 114 answer-key input figures found printed on their cited PDF pages |
+| Average latency / tool calls | 11 s / 2.9 |
 
 ## Architecture
 
@@ -30,7 +31,7 @@ for every figure, verifying every number against the source data, and refusing q
 | 4. Canonical items | `src/analysis/canonical.py` | ~40 standard items (one exact row per item/scope/year), per-report values for same-basis year-over-year changes |
 | 5. Chunks | `src/ingest/build_chunks.py` | statement tables, note tables (with note titles), notes text, narrative pages with topic tags (risk, MD&A, strategy...) |
 | 6. Index | `src/index/build_index.py` | Qdrant: dense `BAAI/bge-base-en-v1.5` + sparse BM25, fused with RRF, filters on report/year/scope/section/type/topic |
-| 7. Agent | `src/agent/agent.py`, `tools.py` | Ollama Cloud `gpt-oss:120b` (fallback `gemma4:31b`) with tools `get_financials`, `compute_metric`, `breakdown`, `get_line_items`, `search_documents`, `list_risk_disclosures`, `calculate`; numeric grounding, claims check, self-review |
+| 7. Agent | `src/agent/agent.py`, `tools.py` | Ollama Cloud `gpt-oss:120b` (fallback `gemma4:31b`) with tools `get_financials`, `compute_metric`, `breakdown`, `compute_scores`, `get_line_items`, `search_documents`, `list_risk_disclosures`, `calculate`; numeric grounding, claims check, self-review |
 | 8. API | `src/api/main.py` | FastAPI, endpoints below |
 | 9. Evaluation | `eval/build_questions.py`, `eval/run_eval.py` | 27-question set with PDF-verified answer key; tiered scoring |
 
@@ -290,6 +291,9 @@ Six key metrics for every year: `current_ratio`, `debt_to_equity`, `interest_cov
   ]
 }
 ```
+
+### `GET /api/scores?scope=<scope>`
+Altman Z'' (book equity, actual retained earnings), Piotroski F and Beneish M for FY2022-23 to FY2025-26. Shape and fields: `docs/API_CONTRACT.md`; formulas and proxies: `docs/SCORES.md`.
 
 ### `GET /api/evaluation`
 The latest evaluation run (excerpt; `{"available": false}` if none exists):

@@ -1,17 +1,17 @@
-# Evaluation notes — final run (eval/results/run_20260926_1817.json)
+# Evaluation notes — final run (eval/results/run_20260927_0136.json)
 
-## Automatic scores (27 questions)
+## Automatic scores (30 questions)
 | Tier | Result |
 |---|---|
 | 1. Filtered retrieval (search only, correct filters) | Hit Rate@4 = 1.00, MRR = 1.00 |
-| 2a. Numeric accuracy | 20/20 numeric questions fully correct; 54/54 expected numbers found |
-| 2b. Source pages retrieved / cited | 21/21 questions retrieved the expected pages; 43/45 expected pages cited |
-| 2c. Abstention | 27/27 (all 3 out-of-scope traps refused; no valid question wrongly refused) |
-| 2d. Grounding (automatic numeric verification) | 25/27 answers fully grounded (B3 53/54, D2 41/42) |
-| Average latency / tool calls | 14 s / 4.0 |
+| 2a. Numeric accuracy | 22/22 numeric questions fully correct; 57/57 expected numbers found |
+| 2b. Source pages retrieved / cited | 24/24 questions retrieved the expected pages; 48/53 expected pages cited |
+| 2c. Abstention | 30/30 (all 3 out-of-scope traps refused; no valid question wrongly refused) |
+| 2d. Grounding (automatic numeric verification) | 30/30 answers fully grounded |
+| Average latency / tool calls | 11 s / 2.9 |
 
-Answer key: every expected number was derived from the verified statement data, and all 90 raw input figures were
-cross-checked against the text of their cited PDF pages (90/90 found).
+Answer key: every expected number was derived from the verified statement data, and all 114 raw input figures were
+cross-checked against the text of their cited PDF pages (114/114 found).
 
 ## Hand-graded (qualitative) questions
 | ID | Grade | Notes |
@@ -20,7 +20,10 @@ cross-checked against the text of their cited PDF pages (90/90 found).
 | G1 risk evolution | Correct method, unreliable conclusions | Compares named risks from the Integrated Report risk sections (after adding list_risk_disclosures), but called risks "new in FY26" that FY23 also discusses (regulatory risk: 3 FY23 chunks; employee well-being: 8; R&D: 12) and misreported its own search results. |
 | G2 UK losses | Partial | Correct segment figures (UK -4,134.20 → -2,568.99, +1,565.21) and UK government support; but attributed India's new labour-code charge to the UK, linked exceptional provisions to segment results (which exclude them), and omitted the electric-arc-furnace transition despite 32 FY26 chunks discussing it. |
 | G3 key audit matters | Correct | Both KAMs (litigation/contingent liabilities; carrying amount of PPE and goodwill of the Tata Steel Nederland CGU), p. F131. |
-| I1 verdict | Correct, fully grounded (263/263) | Covers liquidity, leverage, profitability and cash flow. |
+| I1 verdict | Correct, fully grounded | Covers liquidity, leverage, profitability and cash flow. |
+| E2 Altman Z'' | Correct | FY2024-25 0.8666 / FY2025-26 0.9604, distress zone (actual retained earnings; see below). |
+| E3 Piotroski F | Correct | FY2025-26 score 8, strong. |
+| E4 Beneish M | Correct | FY2025-26 -2.9793, no manipulation flag. |
 
 ## Errors found by the evaluation, traced to their true source
 | Symptom | Looked like | Actual source | Fix |
@@ -31,6 +34,9 @@ cross-checked against the text of their cited PDF pages (90/90 found).
 | H2, H4 "failed" abstention | Hallucination | Scorer: refusal phrasings ("cannot be provided", "cannot supply") not recognised | Broader refusal detector |
 | Unverified "-31", "-26", "-35,064", "157.51" | Ungrounded numbers | Checker: dates ("31-Mar-2024"), bare year ranges ("2025-26"), punctuation dashes, and "Ind AS"-style pattern eating "was 49" | Date/range-aware, attached-sign-only, word-bounded patterns |
 | Answers with no page citations | — | Tables pasted from compute_metric had no pages; model omitted citations | Sources line on every metric table; claims check rejects figures without a page |
+| E2 gave Altman 3.31 / 3.27 | Wrong number | Agent computed its own score, mixing the original 5-variable Altman Z into Z'' | Rule 21 + claims check: Altman/Piotroski/Beneish must come from compute_scores |
+| E2 cited retained earnings of 39,674.80 | Discrepancy | The scores module used other equity as a disclosed proxy for retained earnings; the actual figure is ~40% of it | Claude Code task 02: page-verified retained earnings (16/16); consolidated Z'' moves from grey to distress for FY24-FY26 |
+| E1 unverified "1254.11", "3780.45" | Ungrounded numbers | Checker: numbers written with lakh spacing ("3 01 254.11") | Joins Indian space-grouped digits |
 
 ## Known limitations
 - Numeric grounding proves every number exists in the retrieved sources; it cannot prove a real number sits in the right
