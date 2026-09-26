@@ -1,0 +1,10 @@
+.venv
+.git
+.env
+data
+eval
+qdrant_storage
+.cache
+frontend
+**/__pycache__
+*.pyc
