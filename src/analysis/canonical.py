@@ -58,25 +58,32 @@ SUMS = [("trade_payables", BS, r"trade payables$", "Trade payables (MSE dues + o
 recs = [json.loads(l) for l in open(PROC / "line_items.jsonl")]
 pref = [r for r in recs if r["preferred"] and not r.get("synthetic_label")]
 cite = lambda r: f'{r["report"]} Annual Report, {r["scope"]} {r["statement"].replace("_", " ")}, page {r["page_label"]}'
-out = defaultdict(dict)
-for key, st, prx, irx, desc in RULES:
-    for r in pref:
-        if r["statement"] != st or (prx and not re.search(prx, r["path"].lower())) or not re.search(irx, r["line_item"].lower()):
-            continue
-        slot = out[r["scope"]].setdefault(key, {"description": desc, "values": {}})["values"]
-        if r["fiscal_year"] in slot: continue
-        v = {"value": r["value"], "source": cite(r), "line_item": r["line_item"]}
-        if r["differs_from_original"]: v.update(restated=True, originally_reported=r["original_value"])
-        slot[r["fiscal_year"]] = v
-for key, st, prx, desc in SUMS:
-    groups = defaultdict(list)
-    for r in pref:
-        if r["statement"] == st and re.search(prx, r["path"].lower()): groups[(r["scope"], r["fiscal_year"])].append(r)
-    for (sc, fy), rs in groups.items():
-        out[sc].setdefault(key, {"description": desc, "values": {}})["values"][fy] = {
-            "value": round(sum(r["value"] for r in rs), 2), "source": cite(rs[0]) + f" (sum of {len(rs)} rows)",
-            "components": {r["line_item"]: r["value"] for r in rs}}
+def build(rows):
+    out = defaultdict(dict)
+    for key, st, prx, irx, desc in RULES:
+        for r in rows:
+            if r["statement"] != st or (prx and not re.search(prx, r["path"].lower())) or not re.search(irx, r["line_item"].lower()):
+                continue
+            slot = out[r["scope"]].setdefault(key, {"description": desc, "values": {}})["values"]
+            if r["fiscal_year"] in slot: continue
+            v = {"value": r["value"], "source": cite(r), "line_item": r["line_item"]}
+            if r["differs_from_original"]: v.update(restated=True, originally_reported=r["original_value"])
+            slot[r["fiscal_year"]] = v
+    for key, st, prx, desc in SUMS:
+        groups = defaultdict(list)
+        for r in rows:
+            if r["statement"] == st and re.search(prx, r["path"].lower()): groups[(r["scope"], r["fiscal_year"])].append(r)
+        for (sc, fy), rs in groups.items():
+            out[sc].setdefault(key, {"description": desc, "values": {}})["values"][fy] = {
+                "value": round(sum(r["value"] for r in rs), 2), "source": cite(rs[0]) + f" (sum of {len(rs)} rows)",
+                "components": {r["line_item"]: r["value"] for r in rs}}
+    return out
+
+out = build(pref)
 (PROC / "financials.json").write_text(json.dumps(out, indent=1))
+by_report = {rep: build([r for r in recs if r["report"] == rep and not r.get("synthetic_label")])
+             for rep in sorted({r["report"] for r in recs})}
+(PROC / "financials_by_report.json").write_text(json.dumps(by_report, indent=1))
 
 keys = [k for k, *_ in RULES] + [k for k, *_ in SUMS]
 for sc in ("consolidated", "standalone"):

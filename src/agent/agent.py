@@ -32,7 +32,11 @@ RULES
    search_documents also finds nothing may you say you could not find it - phrase it as "I could not find this
    in the reports", never "the report does not contain". Never conclude absence from a filtered search.
 9. To explain what drove a change, FIRST fetch the underlying line items (e.g. inventories, trade receivables,
-   current borrowings, trade payables) with ONE get_financials call, and quote its yoy_changes exactly, sign included. Never quote approximate figures you have not retrieved,
+   current borrowings, trade payables) with ONE get_financials call, and quote its yoy_changes exactly, sign included.
+   To explain a change in a total (current assets, current liabilities, expenses...), call breakdown for each pair of
+   years and discuss the components with the largest share of the change.
+   In breakdown tables, '% change (own YoY)' is the component's own growth and 'Contribution to total change' is its
+   share of the total's change. Never report one as the other. Never quote approximate figures you have not retrieved,
    and never attribute causes (e.g. a borrowing surge) that no retrieved source states.
 10. When listing items from a document (e.g. key audit matters), list each item exactly once and count accurately.
 11. Never attribute reasons to management, MD&A, commentary or "the report" unless you retrieved that passage with
@@ -40,6 +44,8 @@ RULES
 12. Use compute_metric for every ratio or derived metric across years (write the formula; the tool computes it), including
     percentage changes of ratios. Present figures by pasting the 'table' / 'changes_table' returned by get_financials and
     compute_metric VERBATIM; never retype numbers into a table of your own. In prose, copy numbers exactly from those tables.
+13. Before writing comparative claims ("first time", "highest", "lowest", "only", "record"), check them against the full
+    table of values; if a claim is not true for every year shown, do not make it.
 
 STANDARD DEFINITIONS (state the definition you used)
 - Current ratio = Total current assets / Total current liabilities
@@ -108,7 +114,7 @@ DOC_ATTR = re.compile(r"management discussion|md&a|commentary|management (notes|
 
 def unsupported_claims(answer, trace):
     """Rule-based check for claims without evidence: document attributions without a search, drivers never fetched."""
-    fetched = " ".join(json.dumps(t["args"]).lower() for t in trace)
+    fetched = " ".join(json.dumps(t["args"]).lower() + " " + t.get("result", "").lower() for t in trace)
     issues = []
     if DOC_ATTR.search(answer) and not any(t["tool"] == "search_documents" for t in trace):
         issues.append("You attribute statements to MD&A/commentary/management but never retrieved a passage with search_documents.")
@@ -116,6 +122,14 @@ def unsupported_claims(answer, trace):
         if re.search(rx, answer, re.I) and not re.search(rx, fetched):
             issues.append(f"You discuss '{rx.split('|')[0].strip(chr(92) + 'b')}' but never retrieved it (use get_financials: {item}).")
     return issues
+
+REVIEW = ("SELF-REVIEW before finalising. Rewrite your answer so that: (1) every cause, reason or attribution "
+          "('due to', 'reflecting', 'driven by', 'as the Group...', 'management notes...') is directly supported by a table "
+          "or passage you retrieved in this conversation - delete any that is not, instead of guessing; (2) every statement "
+          "agrees with the retrieved data (never say an item rose if the table shows it fell); (3) if you explained a change "
+          "in a total without calling breakdown, call breakdown now and cover its largest components; (4) cite 'notes' as "
+          "notes and 'MD&A' as MD&A, exactly as the source says; (5) keep every number exactly as retrieved. "
+          "Output only the complete final answer.")
 
 def chat(msgs, use_tools=True):
     last = None
@@ -128,6 +142,7 @@ def chat(msgs, use_tools=True):
     raise last
 
 def finish(answer, nums, bad, trace, fixes, note=""):
+    answer = re.sub(r"【[^】]*】", "", answer)
     n_ok = len([n for n in nums if n not in bad])
     footer = f"\n\n---\nVerification: {n_ok}/{len(nums)} figures grounded in source data."
     if bad: footer += f"\n⚠ Could not verify: {bad}"
@@ -137,6 +152,7 @@ def finish(answer, nums, bad, trace, fixes, note=""):
 def ask(question, max_steps=24, max_fixes=2, verbose=True):
     msgs = [{"role": "system", "content": SYSTEM}, {"role": "user", "content": question}]
     trace, pools, fixes, last = [], (set(), set()), 0, None
+    reviewed = False
     collect(question, pools)
     for step in range(max_steps):
         final_step = step == max_steps - 1
@@ -151,7 +167,7 @@ def ask(question, max_steps=24, max_fixes=2, verbose=True):
                 try: result = FUNCS[name](**args)
                 except Exception as e: result = {"error": str(e)}
                 collect(result, pools)
-                trace.append({"tool": name, "args": args})
+                trace.append({"tool": name, "args": args, "result": json.dumps(result, ensure_ascii=False)[:20000]})
                 if verbose: print(f"  -> {name}({json.dumps(args)[:140]})", flush=True)
                 msgs.append({"role": "tool", "tool_name": name, "content": json.dumps(result, ensure_ascii=False)[:12000]})
             continue
@@ -170,6 +186,11 @@ def ask(question, max_steps=24, max_fixes=2, verbose=True):
             msg += ("Retrieve the evidence with tools (get_financials, get_line_items, search_documents, calculate) or remove "
                     "the claim. Then give the complete corrected answer.")
             msgs.append({"role": "user", "content": msg})
+            continue
+        if not reviewed and not final_step and (not (bad or issues) or fixes >= max_fixes):
+            reviewed = True
+            if verbose: print("  [self-review pass]", flush=True)
+            msgs.append({"role": "user", "content": REVIEW})
             continue
         return finish(answer, nums, bad, trace, fixes, note=("Unsupported claims: " + " ".join(issues)) if issues else "")
     if last: return finish(*last, trace, fixes, note="Step limit reached; this is the last draft.")

@@ -172,6 +172,8 @@ SCHEMAS = [
 FIN_PATH = ROOT / "data/processed/financials.json"
 FIN = json.loads(FIN_PATH.read_text()) if FIN_PATH.exists() else {}
 CANON = sorted({k for sc in FIN.values() for k in sc})
+FIN_REP_PATH = ROOT / "data/processed/financials_by_report.json"
+FIN_REP = json.loads(FIN_REP_PATH.read_text()) if FIN_REP_PATH.exists() else {}
 
 def get_financials(items, scope="consolidated", fiscal_years=None):
     """Exact canonical statement items for each year, with year-on-year change and % change computed exactly."""
@@ -190,9 +192,15 @@ def get_financials(items, scope="consolidated", fiscal_years=None):
         vals = {fy: entry["values"][fy] for fy in fys if fy in entry["values"]}
         ys, changes = sorted(vals), []
         for a, b in zip(ys, ys[1:]):
-            va, vb = vals[a]["value"], vals[b]["value"]
-            changes.append({"from": a, "to": b, "change": round(vb - va, 2),
-                            "change_pct": round((vb - va) / abs(va) * 100, 2) if va else None})
+            rb = FIN_REP.get(b, {}).get(sc, {}).get(key, {}).get("values", {})     # later report holds both years
+            same = a in rb and b in rb
+            va = rb[a]["value"] if same else vals[a]["value"]
+            vb = rb[b]["value"] if same else vals[b]["value"]
+            c = {"from": a, "to": b, "change": round(vb - va, 2), "change_pct": round((vb - va) / abs(va) * 100, 2) if va else None,
+                 "basis": f"both years as presented in the {b} report" if same else "latest reported values"}
+            if same and (abs(va - vals[a]["value"]) > 0.01 or abs(vb - vals[b]["value"]) > 0.01):
+                c["prior_year_as_presented"], c["year_as_presented"] = va, vb
+            changes.append(c)
         out[key] = {"description": entry["description"], "values": vals, "yoy_changes": changes}
     ys_all = [y for y in fys if any(y in v["values"] for v in out.values())]
     table = "| Item (INR crore) | " + " | ".join(ys_all) + " |\n|---|" + "---|" * len(ys_all) + "\n"
@@ -204,8 +212,11 @@ def get_financials(items, scope="consolidated", fiscal_years=None):
         cells = []
         for a, b in pairs:
             c = next((c for c in v["yoy_changes"] if c["from"] == a and c["to"] == b), None)
-            cells.append("n/a" if not c else f"{'+' if c['change'] > 0 else ''}{_inr(c['change'])} ({'+' if (c['change_pct'] or 0) > 0 else ''}{c['change_pct']}%)")
+            cell = "n/a" if not c else f"{'+' if c['change'] > 0 else ''}{_inr(c['change'])} ({'+' if (c['change_pct'] or 0) > 0 else ''}{c['change_pct']}%)"
+            cells.append(cell + ("*" if c and "prior_year_as_presented" in c else ""))
         changes += f"| {v['description']} | " + " | ".join(cells) + " |\n"
+    changes += ("\nChanges compare both years as presented in the later year's report. * = prior year was restated or "
+                "reclassified in that report, so the change differs from simply subtracting the level values above.\n")
     res = {"scope_used": sc, "unit": "INR crore", "table": table, "changes_table": changes, "items": out}
     if unknown: res.update(unknown_items=unknown, available_items=CANON, hint="Use get_line_items for items not listed.")
     return res
@@ -263,8 +274,9 @@ def compute_metric(formula, name=None, scope="consolidated", fiscal_years=None, 
     try: results = {fy: ev(tree.body, fy) for fy in fys}
     except ValueError as e: return {"error": str(e)}
     uses_prev = any(isinstance(n, ast.Call) for n in ast.walk(tree))
-    header = "| Fiscal year | " + " | ".join(names) + (" | (prior year-end used for avg/prev)" if uses_prev else "") + f" | {label} |"
-    rows = [header, "|---|" + "---|" * (len(names) + (2 if uses_prev else 1))]
+    header = ("| Fiscal year | " + " | ".join(names) + (" | (prior year-end used for avg/prev)" if uses_prev else "")
+              + f" | {label} | Change vs prior year | % change |")
+    rows = [header, "|---|" + "---|" * (len(names) + (4 if uses_prev else 3))]
     sources = {}
     for fy in fys:
         cells = [_inr(val(k, fy)) if val(k, fy) is not None else "n/a" for k in names]
@@ -272,6 +284,10 @@ def compute_metric(formula, name=None, scope="consolidated", fiscal_years=None, 
             cells.append(", ".join(f"{k}: {_inr(val(k, prev_fy(fy)))}" for k in names if val(k, prev_fy(fy)) is not None) or "n/a")
         r = results[fy]
         cells.append("n/a" if r is None else f"{r:.{int(decimals)}f}")
+        i = fys.index(fy)
+        pr = results.get(fys[i - 1]) if i > 0 else None
+        if r is None or pr is None: cells += ["n/a", "n/a"]
+        else: cells += [f"{r - pr:+.{int(decimals)}f}", f"{(r - pr) / abs(pr) * 100:+.2f}%" if pr else "n/a"]
         rows.append(f"| {fy} | " + " | ".join(cells) + " |")
         sources[fy] = {k: FIN[sc][k]["values"][fy]["source"] for k in names if fy in FIN[sc][k]["values"]}
     return {"metric": label, "formula": str(formula), "scope_used": sc, "table": "\n".join(rows),
@@ -290,3 +306,62 @@ SCHEMAS.insert(1, {"type": "function", "function": {"name": "compute_metric",
         "fiscal_years": {"type": "array", "items": {"type": "string", "enum": YEARS}},
         "decimals": {"type": "integer", "description": "Default 4"}},
         "required": ["formula"]}}})
+
+
+# ---------- breakdown: every component's contribution to a change in a total ----------
+BREAKDOWN = {"total_current_assets": ("balance_sheet", "current assets"),
+             "total_current_liabilities": ("balance_sheet", "current liabilities"),
+             "total_non_current_assets": ("balance_sheet", "non-current assets"),
+             "total_non_current_liabilities": ("balance_sheet", "non-current liabilities"),
+             "total_expenses": ("profit_and_loss", "expenses"),
+             "total_income": ("profit_and_loss", "income")}
+_k = lambda s: re.sub(r"[^a-z0-9]+", " ", str(s).lower()).strip()
+
+def breakdown(total, from_year, to_year, scope="consolidated"):
+    """All components of a statement total for two years (both from the later year's report), with each
+    component's change and share of the total change. Checks the components add up to the reported total."""
+    sc = norm_scope(scope) or "consolidated"
+    key = total if total in BREAKDOWN else (process.extractOne(str(total), list(BREAKDOWN), scorer=_score, processor=utils.default_process) or [None])[0]
+    if key not in BREAKDOWN: return {"error": f"unknown total '{total}'", "available_totals": list(BREAKDOWN)}
+    st, prefix = BREAKDOWN[key]
+    a, b = norm_fy(from_year), norm_fy(to_year)
+    if not a or not b: return {"error": "give from_year and to_year, e.g. FY2024-25 and FY2025-26"}
+    rep = b if b in REPORTS else REPORTS[-1]
+    comps, pages, reported = {}, set(), {}
+    desc = FIN[sc][key]["description"].lower()
+    for r in ITEMS:
+        if r["report"] != rep or r["scope"] != sc or r["statement"] != st or r["fiscal_year"] not in (a, b): continue
+        if r["line_item"].lower() == desc: reported[r["fiscal_year"]] = r["value"]; continue
+        if not _k(r["path"]).startswith(_k(prefix)) or r.get("synthetic_label"): continue
+        if r["line_item"].lower().startswith("total") and not r["line_item"].lower().startswith("total outstanding dues"): continue
+        name = r["line_item"]
+        c = comps.setdefault((_k(r["path"]), _k(name)), {"component": (r["path"].split(" > ", 1)[1] + " > " if " > " in r["path"] else "") + name, "values": {}})
+        c["values"][r["fiscal_year"]] = -r["value"] if name.lower().startswith("less") else r["value"]
+        pages.add(r["page_label"])
+    if a not in reported or b not in reported:
+        return {"error": f"{rep} report does not contain both {a} and {b}; use consecutive years"}
+    rows = sorted([(c["component"], c["values"].get(a, 0.0), c["values"].get(b, 0.0)) for c in comps.values()],
+                  key=lambda x: -abs(x[2] - x[1]))
+    tchg = round(reported[b] - reported[a], 2)
+    table = (f"| Component of {FIN[sc][key]['description']} | {a} | {b} | Change | % change (own YoY) | Contribution to total change |\n"
+             "|---|---|---|---|---|---|\n")
+    for name, va, vb in rows:
+        ch = round(vb - va, 2)
+        pct = f"{ch / abs(va) * 100:+.2f}%" if va else "n/a"
+        share = f"{ch / tchg * 100:+.1f}%" if tchg else "n/a"
+        table += f"| {name} | {_inr(va)} | {_inr(vb)} | {'+' if ch > 0 else ''}{_inr(ch)} | {pct} | {share} |\n"
+    tpct = f"{tchg / abs(reported[a]) * 100:+.2f}%" if reported[a] else "n/a"
+    table += f"| {FIN[sc][key]['description']} (reported) | {_inr(reported[a])} | {_inr(reported[b])} | {'+' if tchg > 0 else ''}{_inr(tchg)} | {tpct} | 100% |\n"
+    sa, sb = round(sum(x[1] for x in rows), 2), round(sum(x[2] for x in rows), 2)
+    return {"total": key, "scope_used": sc, "from": a, "to": b, "source": f"{rep} Annual Report, {sc} {st.replace('_', ' ')}, pages {', '.join(sorted(p for p in pages if p))}",
+            "table": table, "components_reconcile_to_reported_total": abs(sa - reported[a]) < 0.05 and abs(sb - reported[b]) < 0.05}
+
+FUNCS["breakdown"] = breakdown
+SCHEMAS.insert(2, {"type": "function", "function": {"name": "breakdown",
+    "description": "Explain a change in a statement total: returns EVERY component of the total for two years with its change "
+                   "and share of the total change (largest first), as a ready-to-paste table. Totals: " + ", ".join(BREAKDOWN),
+    "parameters": {"type": "object", "properties": {
+        "total": {"type": "string", "enum": list(BREAKDOWN)},
+        "from_year": {"type": "string", "enum": YEARS}, "to_year": {"type": "string", "enum": YEARS},
+        "scope": {"type": "string", "enum": ["consolidated", "standalone"]}},
+        "required": ["total", "from_year", "to_year"]}}})
