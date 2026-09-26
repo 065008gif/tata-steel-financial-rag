@@ -1,0 +1,1292 @@
+[
+ {
+  "id": "A1",
+  "category": "lookup",
+  "question": "What was Tata Steel's consolidated revenue from operations in FY2025-26?",
+  "expected_numbers": [
+   232139.94
+  ],
+  "inputs": [
+   {
+    "item": "revenue_from_operations",
+    "fiscal_year": "FY2025-26",
+    "scope": "consolidated",
+    "value": 232139.94,
+    "report": "FY2025-26",
+    "pdf_page": 422,
+    "page_label": "F144",
+    "components": null
+   }
+  ],
+  "must_abstain": false,
+  "must_mention": [],
+  "expected_sources": [],
+  "note": ""
+ },
+ {
+  "id": "A2",
+  "category": "lookup",
+  "question": "What were Tata Steel's consolidated total assets as at 31 March 2026?",
+  "expected_numbers": [
+   301254.11
+  ],
+  "inputs": [
+   {
+    "item": "total_assets",
+    "fiscal_year": "FY2025-26",
+    "scope": "consolidated",
+    "value": 301254.11,
+    "report": "FY2025-26",
+    "pdf_page": 420,
+    "page_label": "F142",
+    "components": null
+   }
+  ],
+  "must_abstain": false,
+  "must_mention": [],
+  "expected_sources": [],
+  "note": ""
+ },
+ {
+  "id": "A3",
+  "category": "lookup",
+  "question": "What was Tata Steel's standalone profit for the year in FY2025-26?",
+  "expected_numbers": [
+   16065.13
+  ],
+  "inputs": [
+   {
+    "item": "profit_for_the_year",
+    "fiscal_year": "FY2025-26",
+    "scope": "standalone",
+    "value": 16065.13,
+    "report": "FY2025-26",
+    "pdf_page": 303,
+    "page_label": "F25",
+    "components": null
+   }
+  ],
+  "must_abstain": false,
+  "must_mention": [],
+  "expected_sources": [],
+  "note": ""
+ },
+ {
+  "id": "A4",
+  "category": "lookup",
+  "question": "What were Tata Steel's consolidated non-current borrowings as at 31 March 2026?",
+  "expected_numbers": [
+   63753.67
+  ],
+  "inputs": [
+   {
+    "item": "non_current_borrowings",
+    "fiscal_year": "FY2025-26",
+    "scope": "consolidated",
+    "value": 63753.67,
+    "report": "FY2025-26",
+    "pdf_page": 421,
+    "page_label": "F143",
+    "components": null
+   }
+  ],
+  "must_abstain": false,
+  "must_mention": [],
+  "expected_sources": [],
+  "note": ""
+ },
+ {
+  "id": "A5",
+  "category": "lookup",
+  "question": "What were Tata Steel's consolidated inventories as at 31 March 2024?",
+  "expected_numbers": [
+   49157.51
+  ],
+  "inputs": [
+   {
+    "item": "inventories",
+    "fiscal_year": "FY2023-24",
+    "scope": "consolidated",
+    "value": 49157.51,
+    "report": "FY2024-25",
+    "pdf_page": 404,
+    "page_label": "F150",
+    "components": null
+   }
+  ],
+  "must_abstain": false,
+  "must_mention": [],
+  "expected_sources": [],
+  "note": ""
+ },
+ {
+  "id": "A6",
+  "category": "lookup",
+  "question": "What were Tata Steel's consolidated finance costs in FY2023-24?",
+  "expected_numbers": [
+   7507.57
+  ],
+  "inputs": [
+   {
+    "item": "finance_costs",
+    "fiscal_year": "FY2023-24",
+    "scope": "consolidated",
+    "value": 7507.57,
+    "report": "FY2024-25",
+    "pdf_page": 406,
+    "page_label": "F152",
+    "components": null
+   }
+  ],
+  "must_abstain": false,
+  "must_mention": [],
+  "expected_sources": [],
+  "note": ""
+ },
+ {
+  "id": "A7",
+  "category": "table_grounded",
+  "question": "What were Tata Steel's consolidated trade payables as at 31 March 2026, and what are their components?",
+  "expected_numbers": [
+   34810.14,
+   1898.89,
+   32613.49,
+   297.76
+  ],
+  "inputs": [
+   {
+    "item": "trade_payables",
+    "fiscal_year": "FY2025-26",
+    "scope": "consolidated",
+    "value": 34810.14,
+    "report": "FY2025-26",
+    "pdf_page": 421,
+    "page_label": "F143",
+    "components": {
+     "Total outstanding dues of micro and small enterprises": 1898.89,
+     "Total outstanding dues of creditors other than micro and small enterprises": 32613.49,
+     "Acceptances": 297.76
+    }
+   }
+  ],
+  "must_abstain": false,
+  "must_mention": [],
+  "expected_sources": [],
+  "note": ""
+ },
+ {
+  "id": "B1",
+  "category": "trend",
+  "question": "Show Tata Steel's consolidated revenue from operations for FY2021-22 to FY2025-26 and describe the trend.",
+  "expected_numbers": [
+   243959.17,
+   243352.69,
+   229170.78,
+   218542.51,
+   232139.94
+  ],
+  "inputs": [
+   {
+    "item": "revenue_from_operations",
+    "fiscal_year": "FY2021-22",
+    "scope": "consolidated",
+    "value": 243959.17,
+    "report": "FY2022-23",
+    "pdf_page": 435,
+    "page_label": "F142",
+    "components": null
+   },
+   {
+    "item": "revenue_from_operations",
+    "fiscal_year": "FY2022-23",
+    "scope": "consolidated",
+    "value": 243352.69,
+    "report": "FY2023-24",
+    "pdf_page": 434,
+    "page_label": "F146",
+    "components": null
+   },
+   {
+    "item": "revenue_from_operations",
+    "fiscal_year": "FY2023-24",
+    "scope": "consolidated",
+    "value": 229170.78,
+    "report": "FY2024-25",
+    "pdf_page": 406,
+    "page_label": "F152",
+    "components": null
+   },
+   {
+    "item": "revenue_from_operations",
+    "fiscal_year": "FY2024-25",
+    "scope": "consolidated",
+    "value": 218542.51,
+    "report": "FY2025-26",
+    "pdf_page": 422,
+    "page_label": "F144",
+    "components": null
+   },
+   {
+    "item": "revenue_from_operations",
+    "fiscal_year": "FY2025-26",
+    "scope": "consolidated",
+    "value": 232139.94,
+    "report": "FY2025-26",
+    "pdf_page": 422,
+    "page_label": "F144",
+    "components": null
+   }
+  ],
+  "must_abstain": false,
+  "must_mention": [],
+  "expected_sources": [],
+  "note": ""
+ },
+ {
+  "id": "B2",
+  "category": "trend",
+  "question": "How has Tata Steel's consolidated net profit margin changed from FY2022-23 to FY2025-26?",
+  "expected_numbers": [
+   3.32,
+   -2.14,
+   1.45,
+   4.69
+  ],
+  "inputs": [
+   {
+    "item": "profit_for_the_year",
+    "fiscal_year": "FY2022-23",
+    "scope": "consolidated",
+    "value": 8075.35,
+    "report": "FY2023-24",
+    "pdf_page": 434,
+    "page_label": "F146",
+    "components": null
+   },
+   {
+    "item": "revenue_from_operations",
+    "fiscal_year": "FY2022-23",
+    "scope": "consolidated",
+    "value": 243352.69,
+    "report": "FY2023-24",
+    "pdf_page": 434,
+    "page_label": "F146",
+    "components": null
+   },
+   {
+    "item": "profit_for_the_year",
+    "fiscal_year": "FY2023-24",
+    "scope": "consolidated",
+    "value": -4909.61,
+    "report": "FY2024-25",
+    "pdf_page": 406,
+    "page_label": "F152",
+    "components": null
+   },
+   {
+    "item": "revenue_from_operations",
+    "fiscal_year": "FY2023-24",
+    "scope": "consolidated",
+    "value": 229170.78,
+    "report": "FY2024-25",
+    "pdf_page": 406,
+    "page_label": "F152",
+    "components": null
+   },
+   {
+    "item": "profit_for_the_year",
+    "fiscal_year": "FY2024-25",
+    "scope": "consolidated",
+    "value": 3173.78,
+    "report": "FY2025-26",
+    "pdf_page": 422,
+    "page_label": "F144",
+    "components": null
+   },
+   {
+    "item": "revenue_from_operations",
+    "fiscal_year": "FY2024-25",
+    "scope": "consolidated",
+    "value": 218542.51,
+    "report": "FY2025-26",
+    "pdf_page": 422,
+    "page_label": "F144",
+    "components": null
+   },
+   {
+    "item": "profit_for_the_year",
+    "fiscal_year": "FY2025-26",
+    "scope": "consolidated",
+    "value": 10885.82,
+    "report": "FY2025-26",
+    "pdf_page": 422,
+    "page_label": "F144",
+    "components": null
+   },
+   {
+    "item": "revenue_from_operations",
+    "fiscal_year": "FY2025-26",
+    "scope": "consolidated",
+    "value": 232139.94,
+    "report": "FY2025-26",
+    "pdf_page": 422,
+    "page_label": "F144",
+    "components": null
+   }
+  ],
+  "must_abstain": false,
+  "must_mention": [],
+  "expected_sources": [],
+  "note": ""
+ },
+ {
+  "id": "B3",
+  "category": "trend",
+  "question": "How has Tata Steel's consolidated EBITDA margin moved from FY2022-23 to FY2025-26? Define EBITDA as profit before exceptional items and tax + finance costs + depreciation and amortisation - other income.",
+  "expected_numbers": [
+   13.44,
+   9.71,
+   11.66,
+   14.96
+  ],
+  "inputs": [
+   {
+    "item": "profit_before_exceptional_and_tax",
+    "fiscal_year": "FY2022-23",
+    "scope": "consolidated",
+    "value": 18121.86,
+    "report": "FY2023-24",
+    "pdf_page": 434,
+    "page_label": "F146",
+    "components": null
+   },
+   {
+    "item": "finance_costs",
+    "fiscal_year": "FY2022-23",
+    "scope": "consolidated",
+    "value": 6298.7,
+    "report": "FY2023-24",
+    "pdf_page": 434,
+    "page_label": "F146",
+    "components": null
+   },
+   {
+    "item": "depreciation_amortisation",
+    "fiscal_year": "FY2022-23",
+    "scope": "consolidated",
+    "value": 9335.2,
+    "report": "FY2023-24",
+    "pdf_page": 434,
+    "page_label": "F146",
+    "components": null
+   },
+   {
+    "item": "other_income",
+    "fiscal_year": "FY2022-23",
+    "scope": "consolidated",
+    "value": 1037.48,
+    "report": "FY2023-24",
+    "pdf_page": 434,
+    "page_label": "F146",
+    "components": null
+   },
+   {
+    "item": "profit_before_exceptional_and_tax",
+    "fiscal_year": "FY2023-24",
+    "scope": "consolidated",
+    "value": 6667.04,
+    "report": "FY2024-25",
+    "pdf_page": 406,
+    "page_label": "F152",
+    "components": null
+   },
+   {
+    "item": "finance_costs",
+    "fiscal_year": "FY2023-24",
+    "scope": "consolidated",
+    "value": 7507.57,
+    "report": "FY2024-25",
+    "pdf_page": 406,
+    "page_label": "F152",
+    "components": null
+   },
+   {
+    "item": "depreciation_amortisation",
+    "fiscal_year": "FY2023-24",
+    "scope": "consolidated",
+    "value": 9882.16,
+    "report": "FY2024-25",
+    "pdf_page": 406,
+    "page_label": "F152",
+    "components": null
+   },
+   {
+    "item": "other_income",
+    "fiscal_year": "FY2023-24",
+    "scope": "consolidated",
+    "value": 1808.85,
+    "report": "FY2024-25",
+    "pdf_page": 406,
+    "page_label": "F152",
+    "components": null
+   },
+   {
+    "item": "profit_before_exceptional_and_tax",
+    "fiscal_year": "FY2024-25",
+    "scope": "consolidated",
+    "value": 9267.51,
+    "report": "FY2025-26",
+    "pdf_page": 422,
+    "page_label": "F144",
+    "components": null
+   },
+   {
+    "item": "finance_costs",
+    "fiscal_year": "FY2024-25",
+    "scope": "consolidated",
+    "value": 7340.95,
+    "report": "FY2025-26",
+    "pdf_page": 422,
+    "page_label": "F144",
+    "components": null
+   },
+   {
+    "item": "depreciation_amortisation",
+    "fiscal_year": "FY2024-25",
+    "scope": "consolidated",
+    "value": 10421.33,
+    "report": "FY2025-26",
+    "pdf_page": 422,
+    "page_label": "F144",
+    "components": null
+   },
+   {
+    "item": "other_income",
+    "fiscal_year": "FY2024-25",
+    "scope": "consolidated",
+    "value": 1540.53,
+    "report": "FY2025-26",
+    "pdf_page": 422,
+    "page_label": "F144",
+    "components": null
+   },
+   {
+    "item": "profit_before_exceptional_and_tax",
+    "fiscal_year": "FY2025-26",
+    "scope": "consolidated",
+    "value": 17001.15,
+    "report": "FY2025-26",
+    "pdf_page": 422,
+    "page_label": "F144",
+    "components": null
+   },
+   {
+    "item": "finance_costs",
+    "fiscal_year": "FY2025-26",
+    "scope": "consolidated",
+    "value": 7167.06,
+    "report": "FY2025-26",
+    "pdf_page": 422,
+    "page_label": "F144",
+    "components": null
+   },
+   {
+    "item": "depreciation_amortisation",
+    "fiscal_year": "FY2025-26",
+    "scope": "consolidated",
+    "value": 11954.51,
+    "report": "FY2025-26",
+    "pdf_page": 422,
+    "page_label": "F144",
+    "components": null
+   },
+   {
+    "item": "other_income",
+    "fiscal_year": "FY2025-26",
+    "scope": "consolidated",
+    "value": 1401.78,
+    "report": "FY2025-26",
+    "pdf_page": 422,
+    "page_label": "F144",
+    "components": null
+   }
+  ],
+  "must_abstain": false,
+  "must_mention": [],
+  "expected_sources": [],
+  "note": ""
+ },
+ {
+  "id": "C1",
+  "category": "ratio",
+  "question": "Compute Tata Steel's consolidated current ratio for each year from FY2022-23 to FY2025-26.",
+  "expected_numbers": [
+   0.8901,
+   0.7165,
+   0.7944,
+   0.7456
+  ],
+  "inputs": [
+   {
+    "item": "total_current_assets",
+    "fiscal_year": "FY2022-23",
+    "scope": "consolidated",
+    "value": 86606.14,
+    "report": "FY2023-24",
+    "pdf_page": 432,
+    "page_label": "F144",
+    "components": null
+   },
+   {
+    "item": "total_current_liabilities",
+    "fiscal_year": "FY2022-23",
+    "scope": "consolidated",
+    "value": 97295.13,
+    "report": "FY2023-24",
+    "pdf_page": 433,
+    "page_label": "F145",
+    "components": null
+   },
+   {
+    "item": "total_current_assets",
+    "fiscal_year": "FY2023-24",
+    "scope": "consolidated",
+    "value": 70503.59,
+    "report": "FY2024-25",
+    "pdf_page": 404,
+    "page_label": "F150",
+    "components": null
+   },
+   {
+    "item": "total_current_liabilities",
+    "fiscal_year": "FY2023-24",
+    "scope": "consolidated",
+    "value": 98403.48,
+    "report": "FY2024-25",
+    "pdf_page": 405,
+    "page_label": "F151",
+    "components": null
+   },
+   {
+    "item": "total_current_assets",
+    "fiscal_year": "FY2024-25",
+    "scope": "consolidated",
+    "value": 68391.54,
+    "report": "FY2025-26",
+    "pdf_page": 420,
+    "page_label": "F142",
+    "components": null
+   },
+   {
+    "item": "total_current_liabilities",
+    "fiscal_year": "FY2024-25",
+    "scope": "consolidated",
+    "value": 86093.55,
+    "report": "FY2025-26",
+    "pdf_page": 421,
+    "page_label": "F143",
+    "components": null
+   },
+   {
+    "item": "total_current_assets",
+    "fiscal_year": "FY2025-26",
+    "scope": "consolidated",
+    "value": 72265.11,
+    "report": "FY2025-26",
+    "pdf_page": 420,
+    "page_label": "F142",
+    "components": null
+   },
+   {
+    "item": "total_current_liabilities",
+    "fiscal_year": "FY2025-26",
+    "scope": "consolidated",
+    "value": 96917.64,
+    "report": "FY2025-26",
+    "pdf_page": 421,
+    "page_label": "F143",
+    "components": null
+   }
+  ],
+  "must_abstain": false,
+  "must_mention": [],
+  "expected_sources": [],
+  "note": ""
+ },
+ {
+  "id": "C2",
+  "category": "ratio",
+  "question": "What was Tata Steel's consolidated debt-to-equity ratio each year from FY2022-23 to FY2025-26?",
+  "expected_numbers": [
+   0.7418,
+   0.8825,
+   0.9738,
+   0.8186
+  ],
+  "inputs": [
+   {
+    "item": "non_current_borrowings",
+    "fiscal_year": "FY2022-23",
+    "scope": "consolidated",
+    "value": 51446.33,
+    "report": "FY2023-24",
+    "pdf_page": 433,
+    "page_label": "F145",
+    "components": null
+   },
+   {
+    "item": "current_borrowings",
+    "fiscal_year": "FY2022-23",
+    "scope": "consolidated",
+    "value": 26571.37,
+    "report": "FY2023-24",
+    "pdf_page": 433,
+    "page_label": "F145",
+    "components": null
+   },
+   {
+    "item": "total_equity",
+    "fiscal_year": "FY2022-23",
+    "scope": "consolidated",
+    "value": 105175.21,
+    "report": "FY2023-24",
+    "pdf_page": 433,
+    "page_label": "F145",
+    "components": null
+   },
+   {
+    "item": "non_current_borrowings",
+    "fiscal_year": "FY2023-24",
+    "scope": "consolidated",
+    "value": 51576.73,
+    "report": "FY2024-25",
+    "pdf_page": 405,
+    "page_label": "F151",
+    "components": null
+   },
+   {
+    "item": "current_borrowings",
+    "fiscal_year": "FY2023-24",
+    "scope": "consolidated",
+    "value": 29997.19,
+    "report": "FY2024-25",
+    "pdf_page": 405,
+    "page_label": "F151",
+    "components": null
+   },
+   {
+    "item": "total_equity",
+    "fiscal_year": "FY2023-24",
+    "scope": "consolidated",
+    "value": 92432.74,
+    "report": "FY2024-25",
+    "pdf_page": 405,
+    "page_label": "F151",
+    "components": null
+   },
+   {
+    "item": "non_current_borrowings",
+    "fiscal_year": "FY2024-25",
+    "scope": "consolidated",
+    "value": 68551.81,
+    "report": "FY2025-26",
+    "pdf_page": 421,
+    "page_label": "F143",
+    "components": null
+   },
+   {
+    "item": "current_borrowings",
+    "fiscal_year": "FY2024-25",
+    "scope": "consolidated",
+    "value": 20412.0,
+    "report": "FY2025-26",
+    "pdf_page": 421,
+    "page_label": "F143",
+    "components": null
+   },
+   {
+    "item": "total_equity",
+    "fiscal_year": "FY2024-25",
+    "scope": "consolidated",
+    "value": 91352.78,
+    "report": "FY2025-26",
+    "pdf_page": 421,
+    "page_label": "F143",
+    "components": null
+   },
+   {
+    "item": "non_current_borrowings",
+    "fiscal_year": "FY2025-26",
+    "scope": "consolidated",
+    "value": 63753.67,
+    "report": "FY2025-26",
+    "pdf_page": 421,
+    "page_label": "F143",
+    "components": null
+   },
+   {
+    "item": "current_borrowings",
+    "fiscal_year": "FY2025-26",
+    "scope": "consolidated",
+    "value": 21202.72,
+    "report": "FY2025-26",
+    "pdf_page": 421,
+    "page_label": "F143",
+    "components": null
+   },
+   {
+    "item": "total_equity",
+    "fiscal_year": "FY2025-26",
+    "scope": "consolidated",
+    "value": 103780.45,
+    "report": "FY2025-26",
+    "pdf_page": 421,
+    "page_label": "F143",
+    "components": null
+   }
+  ],
+  "must_abstain": false,
+  "must_mention": [],
+  "expected_sources": [],
+  "note": ""
+ },
+ {
+  "id": "C3",
+  "category": "ratio",
+  "question": "What was Tata Steel's consolidated interest coverage ratio each year from FY2022-23 to FY2025-26?",
+  "expected_numbers": [
+   3.8951,
+   0.8472,
+   2.146,
+   3.2281
+  ],
+  "inputs": [
+   {
+    "item": "profit_before_tax",
+    "fiscal_year": "FY2022-23",
+    "scope": "consolidated",
+    "value": 18235.12,
+    "report": "FY2023-24",
+    "pdf_page": 434,
+    "page_label": "F146",
+    "components": null
+   },
+   {
+    "item": "finance_costs",
+    "fiscal_year": "FY2022-23",
+    "scope": "consolidated",
+    "value": 6298.7,
+    "report": "FY2023-24",
+    "pdf_page": 434,
+    "page_label": "F146",
+    "components": null
+   },
+   {
+    "item": "profit_before_tax",
+    "fiscal_year": "FY2023-24",
+    "scope": "consolidated",
+    "value": -1147.04,
+    "report": "FY2024-25",
+    "pdf_page": 406,
+    "page_label": "F152",
+    "components": null
+   },
+   {
+    "item": "finance_costs",
+    "fiscal_year": "FY2023-24",
+    "scope": "consolidated",
+    "value": 7507.57,
+    "report": "FY2024-25",
+    "pdf_page": 406,
+    "page_label": "F152",
+    "components": null
+   },
+   {
+    "item": "profit_before_tax",
+    "fiscal_year": "FY2024-25",
+    "scope": "consolidated",
+    "value": 8412.87,
+    "report": "FY2025-26",
+    "pdf_page": 422,
+    "page_label": "F144",
+    "components": null
+   },
+   {
+    "item": "finance_costs",
+    "fiscal_year": "FY2024-25",
+    "scope": "consolidated",
+    "value": 7340.95,
+    "report": "FY2025-26",
+    "pdf_page": 422,
+    "page_label": "F144",
+    "components": null
+   },
+   {
+    "item": "profit_before_tax",
+    "fiscal_year": "FY2025-26",
+    "scope": "consolidated",
+    "value": 15968.69,
+    "report": "FY2025-26",
+    "pdf_page": 422,
+    "page_label": "F144",
+    "components": null
+   },
+   {
+    "item": "finance_costs",
+    "fiscal_year": "FY2025-26",
+    "scope": "consolidated",
+    "value": 7167.06,
+    "report": "FY2025-26",
+    "pdf_page": 422,
+    "page_label": "F144",
+    "components": null
+   }
+  ],
+  "must_abstain": false,
+  "must_mention": [],
+  "expected_sources": [],
+  "note": ""
+ },
+ {
+  "id": "C4",
+  "category": "ratio",
+  "question": "What was Tata Steel's consolidated return on equity in FY2025-26, using average equity?",
+  "expected_numbers": [
+   11.16
+  ],
+  "inputs": [
+   {
+    "item": "profit_for_the_year",
+    "fiscal_year": "FY2025-26",
+    "scope": "consolidated",
+    "value": 10885.82,
+    "report": "FY2025-26",
+    "pdf_page": 422,
+    "page_label": "F144",
+    "components": null
+   },
+   {
+    "item": "total_equity",
+    "fiscal_year": "FY2025-26",
+    "scope": "consolidated",
+    "value": 103780.45,
+    "report": "FY2025-26",
+    "pdf_page": 421,
+    "page_label": "F143",
+    "components": null
+   },
+   {
+    "item": "total_equity",
+    "fiscal_year": "FY2024-25",
+    "scope": "consolidated",
+    "value": 91352.78,
+    "report": "FY2025-26",
+    "pdf_page": 421,
+    "page_label": "F143",
+    "components": null
+   }
+  ],
+  "must_abstain": false,
+  "must_mention": [],
+  "expected_sources": [],
+  "note": ""
+ },
+ {
+  "id": "C5",
+  "category": "ratio",
+  "question": "Compare Tata Steel's consolidated receivable days in FY2024-25 and FY2025-26 (trade receivables / revenue x 365).",
+  "expected_numbers": [
+   8.79,
+   7.73
+  ],
+  "inputs": [
+   {
+    "item": "trade_receivables",
+    "fiscal_year": "FY2024-25",
+    "scope": "consolidated",
+    "value": 5260.06,
+    "report": "FY2025-26",
+    "pdf_page": 420,
+    "page_label": "F142",
+    "components": null
+   },
+   {
+    "item": "revenue_from_operations",
+    "fiscal_year": "FY2024-25",
+    "scope": "consolidated",
+    "value": 218542.51,
+    "report": "FY2025-26",
+    "pdf_page": 422,
+    "page_label": "F144",
+    "components": null
+   },
+   {
+    "item": "trade_receivables",
+    "fiscal_year": "FY2025-26",
+    "scope": "consolidated",
+    "value": 4916.89,
+    "report": "FY2025-26",
+    "pdf_page": 420,
+    "page_label": "F142",
+    "components": null
+   },
+   {
+    "item": "revenue_from_operations",
+    "fiscal_year": "FY2025-26",
+    "scope": "consolidated",
+    "value": 232139.94,
+    "report": "FY2025-26",
+    "pdf_page": 422,
+    "page_label": "F144",
+    "components": null
+   }
+  ],
+  "must_abstain": false,
+  "must_mention": [],
+  "expected_sources": [],
+  "note": ""
+ },
+ {
+  "id": "D1",
+  "category": "yoy",
+  "question": "How much did Tata Steel's consolidated total borrowings change between FY2024-25 and FY2025-26, in absolute and percentage terms?",
+  "expected_numbers": [
+   88963.81,
+   84956.39,
+   -4007.42,
+   -4.5046
+  ],
+  "inputs": [
+   {
+    "item": "non_current_borrowings",
+    "fiscal_year": "FY2024-25",
+    "scope": "consolidated",
+    "value": 68551.81,
+    "report": "FY2025-26",
+    "pdf_page": 421,
+    "page_label": "F143",
+    "components": null
+   },
+   {
+    "item": "current_borrowings",
+    "fiscal_year": "FY2024-25",
+    "scope": "consolidated",
+    "value": 20412.0,
+    "report": "FY2025-26",
+    "pdf_page": 421,
+    "page_label": "F143",
+    "components": null
+   },
+   {
+    "item": "non_current_borrowings",
+    "fiscal_year": "FY2025-26",
+    "scope": "consolidated",
+    "value": 63753.67,
+    "report": "FY2025-26",
+    "pdf_page": 421,
+    "page_label": "F143",
+    "components": null
+   },
+   {
+    "item": "current_borrowings",
+    "fiscal_year": "FY2025-26",
+    "scope": "consolidated",
+    "value": 21202.72,
+    "report": "FY2025-26",
+    "pdf_page": 421,
+    "page_label": "F143",
+    "components": null
+   }
+  ],
+  "must_abstain": false,
+  "must_mention": [],
+  "expected_sources": [],
+  "note": ""
+ },
+ {
+  "id": "D2",
+  "category": "yoy",
+  "question": "Compare the growth in standalone and consolidated revenue from operations in FY2025-26. What does the gap suggest?",
+  "expected_numbers": [
+   5.436,
+   6.2219
+  ],
+  "inputs": [
+   {
+    "item": "revenue_from_operations",
+    "fiscal_year": "FY2024-25",
+    "scope": "standalone",
+    "value": 132516.66,
+    "report": "FY2025-26",
+    "pdf_page": 303,
+    "page_label": "F25",
+    "components": null
+   },
+   {
+    "item": "revenue_from_operations",
+    "fiscal_year": "FY2025-26",
+    "scope": "standalone",
+    "value": 139720.22,
+    "report": "FY2025-26",
+    "pdf_page": 303,
+    "page_label": "F25",
+    "components": null
+   },
+   {
+    "item": "revenue_from_operations",
+    "fiscal_year": "FY2024-25",
+    "scope": "consolidated",
+    "value": 218542.51,
+    "report": "FY2025-26",
+    "pdf_page": 422,
+    "page_label": "F144",
+    "components": null
+   },
+   {
+    "item": "revenue_from_operations",
+    "fiscal_year": "FY2025-26",
+    "scope": "consolidated",
+    "value": 232139.94,
+    "report": "FY2025-26",
+    "pdf_page": 422,
+    "page_label": "F144",
+    "components": null
+   }
+  ],
+  "must_abstain": false,
+  "must_mention": [],
+  "expected_sources": [],
+  "note": ""
+ },
+ {
+  "id": "E1",
+  "category": "composite",
+  "question": "Break down Tata Steel's consolidated ROE for FY2023-24 and FY2025-26 using DuPont analysis (net margin x asset turnover x equity multiplier, using average assets and equity).",
+  "expected_numbers": [
+   -2.14,
+   0.8164,
+   2.8412,
+   4.69,
+   0.7996,
+   2.9757
+  ],
+  "inputs": [
+   {
+    "item": "total_assets",
+    "fiscal_year": "FY2022-23",
+    "scope": "consolidated",
+    "value": 288021.74,
+    "report": "FY2023-24",
+    "pdf_page": 432,
+    "page_label": "F144",
+    "components": null
+   },
+   {
+    "item": "total_equity",
+    "fiscal_year": "FY2022-23",
+    "scope": "consolidated",
+    "value": 105175.21,
+    "report": "FY2023-24",
+    "pdf_page": 433,
+    "page_label": "F145",
+    "components": null
+   },
+   {
+    "item": "total_assets",
+    "fiscal_year": "FY2023-24",
+    "scope": "consolidated",
+    "value": 273423.5,
+    "report": "FY2024-25",
+    "pdf_page": 404,
+    "page_label": "F150",
+    "components": null
+   },
+   {
+    "item": "total_equity",
+    "fiscal_year": "FY2023-24",
+    "scope": "consolidated",
+    "value": 92432.74,
+    "report": "FY2024-25",
+    "pdf_page": 405,
+    "page_label": "F151",
+    "components": null
+   },
+   {
+    "item": "total_assets",
+    "fiscal_year": "FY2024-25",
+    "scope": "consolidated",
+    "value": 279394.8,
+    "report": "FY2025-26",
+    "pdf_page": 420,
+    "page_label": "F142",
+    "components": null
+   },
+   {
+    "item": "total_equity",
+    "fiscal_year": "FY2024-25",
+    "scope": "consolidated",
+    "value": 91352.78,
+    "report": "FY2025-26",
+    "pdf_page": 421,
+    "page_label": "F143",
+    "components": null
+   },
+   {
+    "item": "total_assets",
+    "fiscal_year": "FY2025-26",
+    "scope": "consolidated",
+    "value": 301254.11,
+    "report": "FY2025-26",
+    "pdf_page": 420,
+    "page_label": "F142",
+    "components": null
+   },
+   {
+    "item": "total_equity",
+    "fiscal_year": "FY2025-26",
+    "scope": "consolidated",
+    "value": 103780.45,
+    "report": "FY2025-26",
+    "pdf_page": 421,
+    "page_label": "F143",
+    "components": null
+   }
+  ],
+  "must_abstain": false,
+  "must_mention": [],
+  "expected_sources": [],
+  "note": ""
+ },
+ {
+  "id": "F1",
+  "category": "segment",
+  "question": "What was the EBITDA of Tata Steel's India, Netherlands and UK segments in FY2025-26?",
+  "expected_numbers": [],
+  "inputs": [],
+  "must_abstain": false,
+  "must_mention": [
+   "India",
+   "Netherlands",
+   "UK"
+  ],
+  "expected_sources": [],
+  "note": "Numbers to be filled in by hand from the segment note."
+ },
+ {
+  "id": "G1",
+  "category": "risk_evolution",
+  "question": "What new risks appear in Tata Steel's FY2025-26 annual report that were not discussed in the FY2022-23 report?",
+  "expected_numbers": [],
+  "inputs": [],
+  "must_abstain": false,
+  "must_mention": [],
+  "expected_sources": [],
+  "note": "Graded by hand against the risk sections of both reports."
+ },
+ {
+  "id": "G2",
+  "category": "narrative",
+  "question": "How does management explain the losses and restructuring of Tata Steel UK?",
+  "expected_numbers": [],
+  "inputs": [],
+  "must_abstain": false,
+  "must_mention": [
+   "electric arc furnace"
+  ],
+  "expected_sources": [],
+  "note": "Graded by hand."
+ },
+ {
+  "id": "G3",
+  "category": "narrative",
+  "question": "What key audit matters did the auditor raise on the FY2025-26 consolidated financial statements?",
+  "expected_numbers": [],
+  "inputs": [],
+  "must_abstain": false,
+  "must_mention": [
+   "litigation",
+   "Nederland"
+  ],
+  "expected_sources": [
+   {
+    "report": "FY2025-26",
+    "page_label": "F131"
+   }
+  ],
+  "note": ""
+ },
+ {
+  "id": "H1",
+  "category": "scope_trap",
+  "question": "What was Tata Steel's revenue in FY2025-26?",
+  "expected_numbers": [
+   232139.94
+  ],
+  "inputs": [
+   {
+    "item": "revenue_from_operations",
+    "fiscal_year": "FY2025-26",
+    "scope": "consolidated",
+    "value": 232139.94,
+    "report": "FY2025-26",
+    "pdf_page": 422,
+    "page_label": "F144",
+    "components": null
+   }
+  ],
+  "must_abstain": false,
+  "must_mention": [
+   "consolidated"
+  ],
+  "expected_sources": [],
+  "note": ""
+ },
+ {
+  "id": "H2",
+  "category": "abstain",
+  "question": "What will Tata Steel's revenue be in FY2027-28?",
+  "expected_numbers": [],
+  "inputs": [],
+  "must_abstain": true,
+  "must_mention": [],
+  "expected_sources": [],
+  "note": ""
+ },
+ {
+  "id": "H3",
+  "category": "abstain",
+  "question": "What was JSW Steel's total debt as at 31 March 2026?",
+  "expected_numbers": [],
+  "inputs": [],
+  "must_abstain": true,
+  "must_mention": [],
+  "expected_sources": [],
+  "note": ""
+ },
+ {
+  "id": "H4",
+  "category": "abstain",
+  "question": "What was Tata Steel's revenue from operations in FY2009-10?",
+  "expected_numbers": [],
+  "inputs": [],
+  "must_abstain": true,
+  "must_mention": [],
+  "expected_sources": [],
+  "note": ""
+ },
+ {
+  "id": "I1",
+  "category": "verdict",
+  "question": "Give an overall financial health verdict for Tata Steel (consolidated) across FY2022-23 to FY2025-26, covering liquidity, leverage, profitability and cash flow.",
+  "expected_numbers": [],
+  "inputs": [],
+  "must_abstain": false,
+  "must_mention": [
+   "liquidity",
+   "leverage",
+   "profitab"
+  ],
+  "expected_sources": [],
+  "note": "Graded by hand; grounding statistics recorded automatically."
+ }
+]

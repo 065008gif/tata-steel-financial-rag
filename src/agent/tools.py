@@ -215,7 +215,7 @@ def get_financials(items, scope="consolidated", fiscal_years=None):
             cell = "n/a" if not c else f"{'+' if c['change'] > 0 else ''}{_inr(c['change'])} ({'+' if (c['change_pct'] or 0) > 0 else ''}{c['change_pct']}%)"
             cells.append(cell + ("*" if c and "prior_year_as_presented" in c else ""))
         changes += f"| {v['description']} | " + " | ".join(cells) + " |\n"
-    changes += ("\nChanges compare both years as presented in the later year's report. * = prior year was restated or "
+    changes += ("\nChanges compare both years as presented in the later year's report. * = a figure was restated or "
                 "reclassified in that report, so the change differs from simply subtracting the level values above.\n")
     res = {"scope_used": sc, "unit": "INR crore", "table": table, "changes_table": changes, "items": out}
     if unknown: res.update(unknown_items=unknown, available_items=CANON, hint="Use get_line_items for items not listed.")

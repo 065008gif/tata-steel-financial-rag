@@ -66,7 +66,7 @@ def build(rows):
                 continue
             slot = out[r["scope"]].setdefault(key, {"description": desc, "values": {}})["values"]
             if r["fiscal_year"] in slot: continue
-            v = {"value": r["value"], "source": cite(r), "line_item": r["line_item"]}
+            v = {"value": r["value"], "source": cite(r), "line_item": r["line_item"], "pdf_page": r["page"], "report": r["report"]}
             if r["differs_from_original"]: v.update(restated=True, originally_reported=r["original_value"])
             slot[r["fiscal_year"]] = v
     for key, st, prx, desc in SUMS:
@@ -76,7 +76,7 @@ def build(rows):
         for (sc, fy), rs in groups.items():
             out[sc].setdefault(key, {"description": desc, "values": {}})["values"][fy] = {
                 "value": round(sum(r["value"] for r in rs), 2), "source": cite(rs[0]) + f" (sum of {len(rs)} rows)",
-                "components": {r["line_item"]: r["value"] for r in rs}}
+                "components": {r["line_item"]: r["value"] for r in rs}, "pdf_page": rs[0]["page"], "report": rs[0]["report"]}
     return out
 
 out = build(pref)
