@@ -46,6 +46,23 @@ RULES
     compute_metric VERBATIM; never retype numbers into a table of your own. In prose, copy numbers exactly from those tables.
 13. Before writing comparative claims ("first time", "highest", "lowest", "only", "record"), check them against the full
     table of values; if a claim is not true for every year shown, do not make it.
+14. Fiscal years end on 31 March: FY2023-24 is the year ended 31 March 2024, and balance-sheet values "as at 31 March
+    2024" belong to FY2023-24. Convert every date in the question this way before calling tools.
+15. Risk evolution questions: call search_documents with topic "risk" and types ["narrative"] SEPARATELY for each report
+    being compared (queries such as "key risks", "risk management", "principal risks", "emerging risks"). List the named
+    risks in each report. Call a risk "new" only if a targeted search of the older report for that specific risk finds no
+    discussion of it. Keep business risks (risk management sections) distinct from contingent liabilities (notes).
+16. "How does management explain..." questions: search the narrative sections first (types ["narrative"], topics such as
+    mdna, strategy, segments, risk) of the relevant reports, then use notes only for supporting figures.
+17. Never write approximate figures ("around 7,000", "roughly half"); quote the exact retrieved value.
+18. Before saying a measure is not disclosed, check whether the report gives it under another name, and read the relevant
+    note's definitions. For example, segment "results" defined as profit before finance cost, depreciation and amortisation,
+    exceptional items and tax ARE segment EBITDA; say so and report them under the report's own label.
+19. Express multiples (current ratio, debt-to-equity, interest coverage, asset turnover, equity multiplier) as "0.82x",
+    and margins, returns and growth rates as percentages.
+20. Some note tables have no year columns and give each item as two stacked rows of values (the label may be split across
+    them). The FIRST row is the report's current year and the SECOND row is the prior year. Where a total exists, confirm
+    the year by reconciling it with the statements (e.g. segment totals against consolidated figures).
 
 STANDARD DEFINITIONS (state the definition you used)
 - Current ratio = Total current assets / Total current liabilities
@@ -59,15 +76,18 @@ Answer in clear prose with a small table where it helps."""
 
 # ---------- numeric grounding ----------
 IGNORE = re.compile(
-    r"FY\s?'?\d{2,4}(?:\s?[-–‑—]\s?\d{2,4})?|\bF\d{1,3}\b|(?:pp?\.|page|PDF p)\s?\d+(?:\s?[-–‑—]\s?F?\d+)?|"
-    r"Note\s+\d+[A-Za-z]?(?:\([a-z]\))?|(?:ISA|Ind AS|SA|AS|Section|Schedule)\s?\d+|\b(?:19|20)\d{2}\b|\d+(?:st|nd|rd|th)\b",
+    r"FY\s?'?\d{2,4}(?:\s?[-–‑—]\s?\d{2,4})?|\bF\d{1,3}\b|(?:pp?\.|pages?|PDF\s?p(?:age)?\.?)\s?\d+(?:\s?[-–‑—]\s?F?\d+)?|"
+    r"Note\s+\d+[A-Za-z]?(?:\([a-z]\))?|\b(?-i:ISA|Ind AS|SA|AS)\s?\d+|\b(?:Section|Schedule)\s+\d+|\b(?:19|20)\d{2}\b|\d+(?:st|nd|rd|th)\b",
     re.I)
 
-SIGNED = re.compile(r"(?:(?<![\w.])([+\-–−])\s?)?(\d[\d,]*(?:\.\d+)?)")
+DATES = re.compile(r"\b\d{1,2}(?:st|nd|rd|th)?[\s\-–‑]*(?:jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\.?[\s,\-–‑]*(?:\d{2,4})?"
+                   r"|\b(?:jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\.?\s+\d{1,2}(?:,?\s*\d{4})?|\b\d{4}-\d{2}-\d{2}\b|\b\d{1,2}/\d{1,2}/\d{2,4}\b", re.I)
+SIGNED = re.compile(r"(?:(?<![\w.])([+\-–−‑]))?(\d[\d,]*(?:\.\d+)?)")
 
 def numbers_in(text, signed=False):
     """Numbers in text (years, pages, notes, small counters ignored). signed=True -> [(value, had_explicit_sign)]."""
     t = re.sub(r"(?<=\d)[\s\u00a0\u202f\u2009](?=\d{3}(?:\D|$))", "", str(text))
+    t = DATES.sub(" ", t)
     t = IGNORE.sub(" ", t)
     out = []
     for m in SIGNED.finditer(t):
@@ -75,7 +95,7 @@ def numbers_in(text, signed=False):
         try: v = float(s.replace(",", ""))
         except ValueError: continue
         if not ("." in s or v >= 13): continue
-        neg = m.group(1) in ("-", "–", "−")
+        neg = m.group(1) in ("-", "–", "−", "‑")
         out.append(((-v if neg else v), m.group(1) is not None) if signed else v)
     return out
 
@@ -147,7 +167,8 @@ def finish(answer, nums, bad, trace, fixes, note=""):
     footer = f"\n\n---\nVerification: {n_ok}/{len(nums)} figures grounded in source data."
     if bad: footer += f"\n⚠ Could not verify: {bad}"
     if note: footer += f"\n⚠ {note}"
-    return answer + footer, {"trace": trace, "grounded": n_ok, "total": len(nums), "unverified": bad, "fix_rounds": fixes}
+    return answer + footer, {"trace": trace, "grounded": n_ok, "total": len(nums), "unverified": bad, "fix_rounds": fixes,
+                             "answer_body": answer, "warnings": [note] if note else []}
 
 def ask(question, max_steps=24, max_fixes=2, verbose=True):
     msgs = [{"role": "system", "content": SYSTEM}, {"role": "user", "content": question}]

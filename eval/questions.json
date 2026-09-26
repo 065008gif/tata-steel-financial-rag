@@ -1161,7 +1161,11 @@
   "id": "F1",
   "category": "segment",
   "question": "What was the EBITDA of Tata Steel's India, Netherlands and UK segments in FY2025-26?",
-  "expected_numbers": [],
+  "expected_numbers": [
+   33035.63,
+   2721.52,
+   -2568.99
+  ],
   "inputs": [],
   "must_abstain": false,
   "must_mention": [
@@ -1169,8 +1173,13 @@
    "Netherlands",
    "UK"
   ],
-  "expected_sources": [],
-  "note": "Numbers to be filled in by hand from the segment note."
+  "expected_sources": [
+   {
+    "report": "FY2025-26",
+    "page_label": "F256"
+   }
+  ],
+  "note": "Reported as 'Segment results before exceptional items, interest, tax and depreciation' (i.e. segment EBITDA), note 43, F256; definition on F258. Verified: segments sum to 34,847.73 and reconcile to profit before exceptional items and tax 17,001.15."
  },
  {
   "id": "G1",

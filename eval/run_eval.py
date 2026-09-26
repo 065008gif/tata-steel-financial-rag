@@ -16,7 +16,12 @@ REFUSAL = re.compile(r"could not find|couldn.t find|not (available|included|cont
                      r"do(es)? not (contain|include|cover|provide)|only covers?|beyond the (scope|reports|period)|unable to (provide|find|answer)", re.I)
 
 def num_match(e, found):
-    return any(close(abs(n), abs(e)) or (e != 0 and abs(abs(n) - abs(e)) / abs(e) <= 0.005) for n in found)
+    """Match within rounding or 0.5%, in either direction, also when shown as a percentage (x100) or fraction."""
+    for n in found:
+        for sc in (1, 100, 0.01):
+            t = abs(e) * sc
+            if close(abs(n), t) or close(t, abs(n)) or (t and abs(abs(n) - t) / t <= 0.005): return True
+    return False
 
 print("TIER 1 - FILTERED RETRIEVAL (search only, correct filters given)")
 RETRIEVAL = [("key audit matters", dict(report="FY2025-26", scope="consolidated", section="auditor_report"), {"F131"}),

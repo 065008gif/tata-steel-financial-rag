@@ -108,6 +108,44 @@ def get_line_items(query, scope="consolidated", statement=None, fiscal_years=Non
         out.append({"line_item": name, "match_score": round(score), "values": vals})
     return {"scope_used": sc, "filters_relaxed": relaxed, "available_years": YEARS, "matches": out}
 
+def _compact(text):
+    """Collapse the padding Docling puts in markdown tables, so wide tables fit in the context the model sees."""
+    return re.sub(r"-{4,}", "---", re.sub(r"[ \t]{2,}", " ", text))
+
+_NUM_CELL = re.compile(r"\(?-?[\d,]+\.\d+\)?|-")
+
+def _fix_stacked(md, report):
+    """Repair stacked-year rows in note tables: a numeric row followed by a numeric row whose label is blank or
+    continues in lowercase is one item shown for two years (first = report year, second = prior year).
+    The split label is merged and each row is stamped with its fiscal year."""
+    try:
+        y = int(report[2:6]); cur, pri = report, f"FY{y - 1}-{str(y)[2:]}"
+    except Exception:
+        return md
+    lines = md.split("\n")
+    def parts(l):
+        if not l.startswith("|"): return None
+        cells = [c.strip() for c in l.strip().strip("|").split("|")]
+        nums = sum(1 for c in cells if _NUM_CELL.fullmatch(c))
+        lab_i = next((i for i, c in enumerate(cells) if c and not _NUM_CELL.fullmatch(c)), None)
+        return cells, nums, lab_i
+    i = 0
+    while i < len(lines) - 1:
+        a, b = parts(lines[i]), parts(lines[i + 1])
+        if a and b and a[1] >= 2 and b[1] >= 2 and a[2] is not None:
+            lab_a = a[0][a[2]]
+            lab_b = b[0][b[2]] if b[2] is not None and b[2] <= a[2] else ""
+            if lab_b == "" or lab_b[:1].islower():
+                full = (lab_a + " " + lab_b).strip()
+                ca, cb = list(a[0]), list(b[0])
+                ca[a[2]] = f"{full} [{cur}]"
+                if b[2] is not None and b[2] <= a[2]: cb[b[2]] = f"{full} [{pri}]"
+                else: cb[a[2]] = f"{full} [{pri}]"
+                lines[i], lines[i + 1] = "| " + " | ".join(ca) + " |", "| " + " | ".join(cb) + " |"
+                i += 2; continue
+        i += 1
+    return "\n".join(lines)
+
 def search_documents(query, report=None, scope=None, types=None, topic=None, section=None, k=6):
     """Hybrid search; relaxes filters step by step until something is found."""
     base = dict(report=norm_fy(report) if report else None, scope=norm_scope(scope), types=norm_types(types),
@@ -120,7 +158,7 @@ def search_documents(query, report=None, scope=None, types=None, topic=None, sec
             return {"filters_used": {a: b for a, b in f.items() if b}, "filters_relaxed": i > 0, "results": [
                 {"source": f'{p.payload["report"]} Annual Report, {p.payload["scope"] or ""} {p.payload["section"]}, '
                            f'page {p.payload.get("page_label") or "PDF p" + str(p.payload["page"])}',
-                 "title": p.payload["note"], "text": p.payload["text"][:2500]} for p in pts]}
+                 "title": p.payload["note"], "text": _fix_stacked(_compact(p.payload["text"]), p.payload["report"])[:5000]} for p in pts]}
     return {"results": [], "note": "Nothing found even with only the report filter. Try different wording."}
 
 OPS = {ast.Add: operator.add, ast.Sub: operator.sub, ast.Mult: operator.mul, ast.Div: operator.truediv,
@@ -217,7 +255,7 @@ def get_financials(items, scope="consolidated", fiscal_years=None):
         changes += f"| {v['description']} | " + " | ".join(cells) + " |\n"
     changes += ("\nChanges compare both years as presented in the later year's report. * = a figure was restated or "
                 "reclassified in that report, so the change differs from simply subtracting the level values above.\n")
-    res = {"scope_used": sc, "unit": "INR crore", "table": table, "changes_table": changes, "items": out}
+    res = {"scope_used": sc, "unit": "INR crore", "year_convention": "FY2023-24 = year ended 31 March 2024; balance-sheet values for FY2023-24 are as at 31 March 2024.", "table": table, "changes_table": changes, "items": out}
     if unknown: res.update(unknown_items=unknown, available_items=CANON, hint="Use get_line_items for items not listed.")
     return res
 
@@ -290,7 +328,12 @@ def compute_metric(formula, name=None, scope="consolidated", fiscal_years=None, 
         else: cells += [f"{r - pr:+.{int(decimals)}f}", f"{(r - pr) / abs(pr) * 100:+.2f}%" if pr else "n/a"]
         rows.append(f"| {fy} | " + " | ".join(cells) + " |")
         sources[fy] = {k: FIN[sc][k]["values"][fy]["source"] for k in names if fy in FIN[sc][k]["values"]}
-    return {"metric": label, "formula": str(formula), "scope_used": sc, "table": "\n".join(rows),
+    by_fy = {}
+    for fy_, d in sources.items():
+        for s_ in d.values():
+            by_fy.setdefault(fy_, set()).add(s_.split(" Annual Report")[0] + " AR p. " + s_.split("page ")[-1])
+    src_line = "Sources: " + "; ".join(f"{fy_}: {', '.join(sorted(v))}" for fy_, v in by_fy.items())
+    return {"metric": label, "formula": str(formula), "scope_used": sc, "table": "\n".join(rows) + "\n\n" + src_line,
             "values": {fy: (None if r is None else round(r, int(decimals))) for fy, r in results.items()}, "sources": sources}
 
 FUNCS["compute_metric"] = compute_metric
