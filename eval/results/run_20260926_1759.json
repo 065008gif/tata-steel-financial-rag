@@ -1,0 +1,37 @@
+{
+ "summary": {
+  "tier1_filtered_retrieval": {
+   "hit_rate@4": 1.0,
+   "mrr": 1.0
+  },
+  "numeric_questions_fully_correct": "1/1",
+  "expected_numbers_found": "3/3",
+  "source_pages_retrieved": "1/1 questions",
+  "expected_pages_cited": "1/1",
+  "abstention_correct": "1/1",
+  "answers_fully_grounded": "1/1",
+  "avg_seconds": 21,
+  "avg_tool_calls": 1.0
+ },
+ "records": [
+  {
+   "id": "F1",
+   "category": "segment",
+   "question": "What was the EBITDA of Tata Steel's India, Netherlands and UK segments in FY2025-26?",
+   "seconds": 21,
+   "tool_calls": 1,
+   "numeric": "3/3",
+   "numeric_all": true,
+   "missed_numbers": [],
+   "citation": "1/1",
+   "retrieval_hit": true,
+   "mentions": "3/3",
+   "must_abstain": false,
+   "refused": false,
+   "abstention_ok": true,
+   "grounded": "3/3",
+   "unverified": [],
+   "answer": "**EBITDA (segment‑level “results before exceptional items, interest, tax and depreciation”) – FY 2025‑26**\n\n| Segment | EBITDA (Rs crore) | Source |\n|--------|-------------------|--------|\n| Tata Steel India | 33,035.63 | FY 2025‑26 Annual Report, **notes**, “Segment reporting”, p. F256 (PDF p534) |\n| Tata Steel Netherlands operations | 2,721.52 | FY 2025‑26 Annual Report, **notes**, “Segment reporting”, p. F256 (PDF p534) |\n| Tata Steel UK operations | (2,568.99) (negative) | FY 2025‑26 Annual Report, **notes**, “Segment reporting”, p. F256 (PDF p534) |\n\n*The figures are taken directly from the segment‑reporting note, where the report defines “segment results before exceptional items, interest, tax and depreciation” as the EBITDA measure used by the CODM.*\n\n---\nVerification: 3/3 figures grounded in source data."
+  }
+ ]
+}

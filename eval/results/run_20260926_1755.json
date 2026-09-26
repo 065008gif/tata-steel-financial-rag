@@ -1,0 +1,43 @@
+{
+ "summary": {
+  "tier1_filtered_retrieval": {
+   "hit_rate@4": 1.0,
+   "mrr": 1.0
+  },
+  "numeric_questions_fully_correct": "0/1",
+  "expected_numbers_found": "0/3",
+  "source_pages_retrieved": "1/1 questions",
+  "expected_pages_cited": "1/1",
+  "abstention_correct": "1/1",
+  "answers_fully_grounded": "0/1",
+  "avg_seconds": 61,
+  "avg_tool_calls": 5.0
+ },
+ "records": [
+  {
+   "id": "F1",
+   "category": "segment",
+   "question": "What was the EBITDA of Tata Steel's India, Netherlands and UK segments in FY2025-26?",
+   "seconds": 61,
+   "tool_calls": 5,
+   "numeric": "0/3",
+   "numeric_all": false,
+   "missed_numbers": [
+    33035.63,
+    2721.52,
+    -2568.99
+   ],
+   "citation": "1/1",
+   "retrieval_hit": true,
+   "mentions": "3/3",
+   "must_abstain": false,
+   "refused": false,
+   "abstention_ok": true,
+   "grounded": "3/6",
+   "unverified": [
+    534.0
+   ],
+   "answer": "**EBITDA (segment‑level “profit before exceptional items, interest, tax and depreciation”) – FY 2025‑26**\n\n| Segment | EBITDA (Rs crore) | Source |\n|---------|-------------------|--------|\n| Tata Steel India | **28,217.36** | FY 2025‑26 Annual Report, **Consolidated Notes** – “Segment reporting”, p. F256 (PDF p534) – row “before exceptional items, interest, tax and depreciation:” |\n| Tata Steel Netherlands operations | **825.38** | FY 2025‑26 Annual Report, **Consolidated Notes** – “Segment reporting”, p. F256 (PDF p534) – same row |\n| Tata Steel UK operations | **‑4,134.20** | FY 2025‑26 Annual Report, **Consolidated Notes** – “Segment reporting”, p. F256 (PDF p534) – same row |\n\nThese figures are taken directly from the segment‑reporting table in the FY 2025‑26 consolidated notes, which defines the segment performance reviewed by the CODM as “profit or loss from continuing operations **before finance income/cost, depreciation and amortisation, share of profit/(loss) of joint ventures and associates and tax expenses**; exceptional items are excluded.” This definition corresponds to EBITDA, so the numbers above represent the EBITDA for each geographic segment for the year ended 31 March 2026.\n\n---\nVerification: 3/6 figures grounded in source data.\n⚠ Could not verify: [534.0]"
+  }
+ ]
+}

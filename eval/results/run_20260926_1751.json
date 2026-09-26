@@ -1,0 +1,84 @@
+{
+ "summary": {
+  "tier1_filtered_retrieval": {
+   "hit_rate@4": 1.0,
+   "mrr": 1.0
+  },
+  "numeric_questions_fully_correct": "2/3",
+  "expected_numbers_found": "10/13",
+  "source_pages_retrieved": "3/3 questions",
+  "expected_pages_cited": "8/8",
+  "abstention_correct": "3/3",
+  "answers_fully_grounded": "1/3",
+  "avg_seconds": 23,
+  "avg_tool_calls": 4.0
+ },
+ "records": [
+  {
+   "id": "A7",
+   "category": "table_grounded",
+   "question": "What were Tata Steel's consolidated trade payables as at 31 March 2026, and what are their components?",
+   "seconds": 26,
+   "tool_calls": 2,
+   "numeric": "4/4",
+   "numeric_all": true,
+   "missed_numbers": [],
+   "citation": "1/1",
+   "retrieval_hit": true,
+   "mentions": null,
+   "must_abstain": false,
+   "refused": false,
+   "abstention_ok": true,
+   "grounded": "9/9",
+   "unverified": [],
+   "answer": "**Consolidated trade payables – 31 March 2026 (FY 2025‑26)**  \n\n| Item (INR crore) | FY 2025‑26 |\n|---|---|\n| **Trade payables (total)** | **34,810.14** |\n\n*Source: FY 2025‑26 Annual Report, Consolidated Balance Sheet, p. F143 (the total shown as “Trade payables (MSE dues + other creditors + acceptances)”).*  \n\n---\n\n### Components of the trade‑payables total  \n\n| Component (INR crore) | FY 2025‑26 |\n|---|---|\n| Dues of micro and small enterprises (MSE) | 1,898.89 |\n| Creditors other than micro and small enterprises (supplies & services) | 32,613.49 |\n| Acceptances (including those not part of supplier‑finance arrangements) | 297.76 |\n\n*Sources:*  \n\n* **MSE dues** – FY 2025‑26 Annual Report, **Notes** “27. Trade payables – A. Total outstanding dues of micro and small enterprises”, p. F214.  \n* **Creditors other than MSE** – FY 2025‑26 Annual Report, **Notes** “27. Trade payables – B. Total outstanding dues of creditors other than micro and small enterprises”, p. F215.  \n* **Acceptances** – FY 2025‑26 Annual Report, **Notes** “27. Trade payables – B. Total outstanding dues of creditors other than micro and small enterprises”, p. F215 (line showing Acceptances = ₹297.76 crore).  \n\nThe three component amounts sum to the total trade‑payables figure of **₹34,810.14 crore** reported on the balance sheet. No other figures or attributions are presented.\n\n---\nVerification: 9/9 figures grounded in source data."
+  },
+  {
+   "id": "E1",
+   "category": "composite",
+   "question": "Break down Tata Steel's consolidated ROE for FY2023-24 and FY2025-26 using DuPont analysis (net margin x asset turnover x equity multiplier, using average assets and equity).",
+   "seconds": 29,
+   "tool_calls": 7,
+   "numeric": "6/6",
+   "numeric_all": true,
+   "missed_numbers": [],
+   "citation": "6/6",
+   "retrieval_hit": true,
+   "mentions": null,
+   "must_abstain": false,
+   "refused": false,
+   "abstention_ok": true,
+   "grounded": "51/53",
+   "unverified": [
+    -26.0,
+    -24.0
+   ],
+   "answer": "**DuPont ROE – Tata Steel Limited (Consolidated)**  \n\n| FY | Net profit margin | Asset turnover | Equity multiplier | ROE (DuPont) |\n|----|-------------------|----------------|-------------------|--------------|\n| **2023‑24** | **‑2.14 %** | **81.64 %** (0.816 ×) | **284.12 %** (2.841 ×) | **‑4.97 %** |\n| **2025‑26** | **4.69 %** | **79.96 %** (0.800 ×) | **297.57 %** (2.976 ×) | **11.16 %** |\n\n*All figures are in **INR crore** and percentages are shown to two decimal places. The calculations use **average assets and average equity** (average of opening‑year and closing‑year balances).*\n\n### Source data used for each component  \n\n| Item | FY 2023‑24 | FY 2025‑26 | Source (consolidated) |\n|------|------------|------------|-----------------------|\n| Profit for the year | –4,909.61 cr | 10,885.82 cr | FY 2024‑25 Annual Report, profit‑and‑loss, p. F152 (FY 2023‑24) ; FY 2025‑26 Annual Report, profit‑and‑loss, p. F144 |\n| Revenue from operations | 229,170.78 cr | 232,139.94 cr | FY 2024‑25 Annual Report, profit‑and‑loss, p. F152 ; FY 2025‑26 Annual Report, profit‑and‑loss, p. F144 |\n| Total assets (closing) | 273,423.50 cr | 301,254.11 cr | FY 2024‑25 Annual Report, balance sheet, p. F150 ; FY 2025‑26 Annual Report, balance sheet, p. F142 |\n| Total assets (opening) | 288,021.74 cr | 279,394.80 cr | FY 2023‑24 Annual Report, balance sheet, p. F144 ; FY 2025‑26 Annual Report, balance sheet, p. F142 (FY 2024‑25 figure) |\n| Total equity (closing) | 92,432.74 cr | 103,780.45 cr | FY 2024‑25 Annual Report, balance sheet, p. F151 ; FY 2025‑26 Annual Report, balance sheet, p. F143 |\n| Total equity (opening) | 105,175.21 cr | 91,352.78 cr | FY 2023‑24 Annual Report, balance sheet, p. F145 ; FY 2025‑26 Annual Report, balance sheet, p. F143 (FY 2024‑25 figure) |\n\n### Computation of DuPont components  \n\n| Component | Formula (average assets = (Opening + Closing)/2; average equity = (Opening + Closing)/2) | FY 2023‑24 result | FY 2025‑26 result | Tool used |\n|-----------|------------------------------------------------------------|-------------------|-------------------|-----------|\n| **Net profit margin** | Profit ÷ Revenue | –0.021423 = ‑2.14 % | 0.046893 = 4.69 % | `compute_metric` (Net_Margin) |\n| **Asset turnover** | Revenue ÷ Average assets | 0.81636 = 81.64 % | 0.799588 = 79.96 % | `compute_metric` (Asset_Turnover) |\n| **Equity multiplier** | Average assets ÷ Average equity | 2.841208 = 284.12 % | 2.975654 = 297.57 % | `compute_metric` (Equity_Multiplier) |\n| **ROE (DuPont)** | Net margin × Asset turnover × Equity multiplier | –0.04969 = ‑4.97 % | 0.111573 = 11.16 % | `compute_metric` (ROE_Dupont) |\n\nAll arithmetic was performed with the **calculate** tool (e.g., –0.021423 × 100 = ‑2.1423 %).  \n\n### Observation  \n\nThe ROE moved from **‑4.97 %** in FY 2023‑24 to **11.16 %** in FY 2025‑26. This change mirrors the shift in the **net profit margin**, which turned from **‑2.14 %** to **4.69 %**, while the asset turnover and equity multiplier remained broadly stable (asset turnover fell slightly from 81.64 % to 79.96 %; equity multiplier rose modestly from 284.12 % to 297.57 %). The numbers above are directly taken from the consolidated financial statements of the respective annual reports, with no additional attribution beyond the retrieved data.\n\n---\nVerification: 51/53 figures grounded in source data.\n⚠ Could not verify: [-26.0, -24.0]"
+  },
+  {
+   "id": "F1",
+   "category": "segment",
+   "question": "What was the EBITDA of Tata Steel's India, Netherlands and UK segments in FY2025-26?",
+   "seconds": 14,
+   "tool_calls": 3,
+   "numeric": "0/3",
+   "numeric_all": false,
+   "missed_numbers": [
+    33035.63,
+    2721.52,
+    -2568.99
+   ],
+   "citation": "1/1",
+   "retrieval_hit": true,
+   "mentions": "3/3",
+   "must_abstain": false,
+   "refused": false,
+   "abstention_ok": true,
+   "grounded": "3/4",
+   "unverified": [
+    534.0
+   ],
+   "answer": "**EBITDA (segment‑level “profit before interest, tax, depreciation & amortisation and exceptional items”) – FY 2025‑26**\n\n| Segment (consolidated) | EBITDA (Rs crore) |\n|------------------------|-------------------|\n| Tata Steel India | **28,217.36** |\n| Tata Steel Netherlands operations | **825.38** |\n| Tata Steel UK operations | **‑4,134.20** |\n\n**Source** – FY 2025‑26 Annual Report, *Consolidated Notes – Segment reporting*, table “Segment results before exceptional items, interest, tax and depreciation” (page F256, PDF p534). The figures are presented in Rs crore.\n\n---\nVerification: 3/4 figures grounded in source data.\n⚠ Could not verify: [534.0]"
+  }
+ ]
+}
