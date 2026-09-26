@@ -431,3 +431,99 @@ SCHEMAS.append({"type": "function", "function": {"name": "list_risk_disclosures"
     "description": "List every risk-related page (risk management, key risks, regulatory/financial/ESG risks) of ONE annual report, "
                    "with titles and excerpts. Call it once per report when comparing how risks changed between years.",
     "parameters": {"type": "object", "properties": {"report": {"type": "string", "enum": REPORTS}}, "required": ["report"]}}})
+
+
+# ---------- composite scores: Altman Z'' (book equity), Piotroski F, Beneish M ----------
+sys.path.insert(0, str(ROOT / "src" / "analysis"))
+import scores as S
+
+SCORE_NAMES = {"altman_z": "Altman Z'' (book equity)", "piotroski_f": "Piotroski F-score", "beneish_m": "Beneish M-score (8-variable)"}
+COMPONENT_LABELS = {
+    "X1": "X1 (current assets - current liabilities) / total assets", "X2": "X2 other equity / total assets",
+    "X3": "X3 (PBT + finance costs) / total assets", "X4": "X4 total equity / (total assets - total equity)",
+    "DSRI": "DSRI receivables-to-sales index", "GMI": "GMI gross margin index", "AQI": "AQI asset quality index",
+    "SGI": "SGI sales growth index", "DEPI": "DEPI depreciation index", "SGAI": "SGAI other-expenses (SG&A proxy) index",
+    "LVGI": "LVGI leverage index", "TATA": "TATA total accruals / total assets"}
+_INR_SIGNALS = ("F2_cfo_positive", "F7_no_new_equity")    # compared amounts are INR crore, not ratios
+
+def norm_score(x):
+    x = str(x or "all").lower()
+    if "altman" in x or x in ("z", "z''", "zscore", "z_score"): return "altman_z"
+    if "piotroski" in x or x in ("f", "fscore", "f_score"): return "piotroski_f"
+    if "beneish" in x or x in ("m", "mscore", "m_score"): return "beneish_m"
+    if x in ("all", "any", "every", "*"): return "all"
+    return None
+
+def _score_table(name, res, fys):
+    """Markdown table for one score: components (4 decimals), score, interpretation, then inputs (INR crore)."""
+    rows = [f"| {SCORE_NAMES[name]} | " + " | ".join(fys) + " |", "|---|" + "---|" * len(fys)]
+    comp_keys = next((list(r["components"]) for r in res.values() if r["components"]), [])
+    for k in comp_keys:
+        cells = []
+        for fy in fys:
+            c = res[fy]["components"].get(k)
+            if c is None: cells.append("n/a")
+            elif name == "piotroski_f":
+                f = _inr if k in _INR_SIGNALS else (lambda v: f"{v:.4f}")
+                cells.append("n/a" if c["signal"] is None or c["current"] is None or c["comparison"] is None
+                             else f"{c['signal']} ({f(c['current'])} vs {f(c['comparison'])})")
+            else: cells.append(f"{c:.4f}")
+        label = res[next(iter(res))]["components"].get(k, {}).get("description", k) if name == "piotroski_f" else COMPONENT_LABELS.get(k, k)
+        rows.append(f"| {(k.split('_')[0] + ' ' + label) if name == 'piotroski_f' else label} | " + " | ".join(cells) + " |")
+    fmt = (lambda v: str(v)) if name == "piotroski_f" else (lambda v: f"{v:.4f}")
+    rows.append(f"| **Score** | " + " | ".join("n/a" if res[fy]["score"] is None else f"**{fmt(res[fy]['score'])}**" for fy in fys) + " |")
+    rows.append(f"| Interpretation | " + " | ".join(res[fy]["interpretation"] or "n/a" for fy in fys) + " |")
+    rel = {0: "t", 1: "t-1", 2: "t-2"}
+    inputs = {}
+    for fy in fys:
+        for rec in res[fy]["inputs"].values():
+            lag = S.YEARS.index(fy) - S.YEARS.index(rec["fiscal_year"])
+            cell = _inr(rec["value"]) + ("*" if rec.get("restated") else "")
+            inputs.setdefault((rec["item"], lag), {})[fy] = cell
+    for (item, lag), cells in inputs.items():
+        rows.append(f"| {item} [{rel.get(lag, lag)}] (INR crore) | " + " | ".join(cells.get(fy, "n/a") for fy in fys) + " |")
+    return "\n".join(rows)
+
+def compute_scores(score="all", fiscal_years=None, scope="consolidated"):
+    """Altman Z'' (book equity), Piotroski F and Beneish M for each year, with every component, input and source,
+    proxies disclosed, plus a ready-to-paste markdown table."""
+    sc = norm_scope(scope) or "consolidated"
+    key = norm_score(score)
+    if not key: return {"error": f"unknown score '{score}'", "available_scores": list(SCORE_NAMES) + ["all"]}
+    fys = [f for f in (norm_fy(y) for y in _list(fiscal_years)) if f in S.YEARS] or S.SCORE_YEARS
+    fys = sorted(set(fys), key=S.YEARS.index)
+    names = list(SCORE_NAMES) if key == "all" else [key]
+    out = {n: S.all_scores(sc, fys)["scores"][n] for n in names}
+    tables, notes, pages = [], [], {}
+    for n in names:
+        tables.append(_score_table(n, out[n], fys))
+        for fy in fys:
+            r = out[n][fy]
+            if r["score"] is None: notes.append(f"{SCORE_NAMES[n]} {fy}: not computed ({r.get('reason') or '; '.join(r['missing'])})")
+            notes += [f"{SCORE_NAMES[n]} {fy}: fallback: {f}" for f in r["fallbacks"]]
+            for rec in r["inputs"].values():
+                m = re.search(r"(FY\d{4}-\d{2}) Annual Report.*page (\S+)", rec["source"])
+                if m: pages.setdefault(m.group(1), set()).add(m.group(2))
+        proxies = dict.fromkeys(p for fy in fys for p in out[n][fy]["proxies"])
+        notes += [f"{SCORE_NAMES[n]} proxy: {p}" for p in proxies]
+    sources = "Sources: " + "; ".join(f"{rep} AR p. {', '.join(sorted(p))}" for rep, p in sorted(pages.items()))
+    table = ("\n\n".join(tables) + "\n\nt = the scored year, t-1 = prior year; two-year scores take both years from the "
+             "report of year t. * = restated in that report.\n\n" + sources)
+    return {"score": key, "scope_used": sc, "unit": "INR crore", "years": fys,
+            "year_convention": "FY2025-26 = year ended 31 March 2026.",
+            "thresholds": {"altman_z": "> 2.60 safe; 1.10-2.60 grey; < 1.10 distress",
+                           "piotroski_f": "8-9 strong; 5-7 average; 0-4 weak",
+                           "beneish_m": "M > -1.78 possible earnings manipulation flag; otherwise unlikely manipulator"},
+            "scores": out, "table": table, "sources": sources, "notes": notes}
+
+FUNCS["compute_scores"] = compute_scores
+SCHEMAS.append({"type": "function", "function": {"name": "compute_scores",
+    "description": "Composite scores computed exactly from the verified statements: Altman Z'' (book-equity version; "
+                   "safe/grey/distress), Piotroski F-score (0-9, nine signals) and Beneish M-score (8-variable earnings-"
+                   "manipulation screen). Returns every component and input with sources, the proxies used, and a "
+                   "ready-to-paste table. Use for questions on bankruptcy risk, financial strength or earnings quality.",
+    "parameters": {"type": "object", "properties": {
+        "score": {"type": "string", "enum": list(SCORE_NAMES) + ["all"], "description": "Default all"},
+        "fiscal_years": {"type": "array", "items": {"type": "string", "enum": S.SCORE_YEARS}},
+        "scope": {"type": "string", "enum": ["consolidated", "standalone"]}},
+        "required": ["score"]}}})

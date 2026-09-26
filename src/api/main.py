@@ -1,6 +1,6 @@
 """FastAPI backend implementing the API contract in the frontend brief (Section 5).
 
-Endpoints: /api/health, /api/ask, /api/financials, /api/items, /api/metrics, /api/evaluation, /api/reports.
+Endpoints: /api/health, /api/ask, /api/financials, /api/items, /api/metrics, /api/scores, /api/evaluation, /api/reports.
 Run from the repo root:  uvicorn main:app --app-dir src/api --host 0.0.0.0 --port 8000
 """
 import json, re, sys, time, uuid
@@ -15,6 +15,8 @@ sys.path.insert(0, str(ROOT / "src" / "agent")); sys.path.insert(0, str(ROOT / "
 import agent as A
 from tools import FIN, YEARS, compute_metric, get_financials
 from search import client as qdrant, COLL
+sys.path.insert(0, str(ROOT / "src" / "analysis"))
+from scores import SCORE_YEARS, all_scores
 
 app = FastAPI(title="Tata Steel Financial Analysis RAG", version="1.0.0")
 app.add_middleware(CORSMiddleware, allow_origins=["http://localhost:5173", "http://127.0.0.1:5173"],
@@ -118,6 +120,11 @@ def metrics(scope: str = "consolidated"):
         out.append({"key": key, "name": name, "formula": formula, "unit": unit, "decimals": dec,
                     "higher_is_better": hib, "values": r.get("values", {fy: None for fy in YEARS})})
     return {"scope": sc, "years": YEARS, "metrics": out}
+
+@app.get("/api/scores")
+def scores(scope: str = "consolidated"):
+    sc = "standalone" if scope == "standalone" else "consolidated"
+    return all_scores(sc, SCORE_YEARS)
 
 @app.get("/api/evaluation")
 def evaluation():

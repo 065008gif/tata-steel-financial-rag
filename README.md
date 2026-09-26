@@ -363,5 +363,11 @@ Limitations and every error the evaluation uncovered, with its root cause and fi
 `eval/EVALUATION_NOTES.md`.
 
 ## Development process
-*(To be completed: which parts were built through the conversational assistant versus the agentic coding tool
-(Claude Code), and why.)*
+Two AI tools were used with a deliberate split. A conversational assistant (Claude, chat) guided environment setup,
+design decisions, the step-by-step build of the ingestion pipeline, index, agent and API, all failure diagnosis, and the
+independent verification of every result. The agentic coding tool **Claude Code** built a complete, well-specified component
+on its own: the composite scores module (Altman Z'', Piotroski F, Beneish M), with its agent tool, API endpoint, 32 tests and
+documentation. It worked from a written brief with strict boundaries, and its output was then verified independently
+(re-run tests, hand-recomputed scores, signal-by-signal checks, live API check). Details: `docs/claude_code/README.md`.
+
+Composite scores: `docs/SCORES.md` · API addendum (`GET /api/scores`): `docs/API_CONTRACT.md`

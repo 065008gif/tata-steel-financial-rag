@@ -21,3 +21,4 @@ qdrant_storage/
 data/interim/
 data/processed/
 .cache/
+.pytest_cache/
