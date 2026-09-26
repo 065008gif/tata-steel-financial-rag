@@ -23,6 +23,17 @@ TOP = re.compile(r"^(?:non-current assets|current assets|equity|non-current liab
                  r"income|expenses|other comprehensive income|.*cash flows? (?:from|used in))", re.I)
 CHECK = {"non-current assets", "current assets", "non-current liabilities", "current liabilities"}
 
+ROMAN = {"i": 1, "ii": 2, "iii": 3, "iv": 4, "v": 5, "vi": 6, "vii": 7, "viii": 8, "ix": 9, "x": 10, "xi": 11, "xii": 12}
+
+def marker_of(text, last_letter):
+    """Return ('letter', n) or ('roman', n) for a leading (a)/(iv) marker. '(i)' after '(h)' is the letter i."""
+    m = re.match(r"^\s*\(([a-z]{1,4})\)", text)
+    if not m: return None
+    s = m.group(1)
+    if len(s) == 1 and not (s in "ivx" and ord(s) - 96 != last_letter + 1):
+        return ("letter", ord(s) - 96)
+    return ("roman", ROMAN[s]) if s in ROMAN else None
+
 def fy_of(end_year): return f"FY{end_year - 1}-{str(end_year)[2:]}"
 
 def parse_num(s):
@@ -58,6 +69,7 @@ def extract(doc, report, scope, stmt, pages, labels):
             break
     cur = fy_of(end)
     recs, checks, stack, sums, stopped, prev = [], [], [], {}, set(), ""
+    kinds, last_letter = [], 0
     stats = {"columns": K, "restated": restated, "partial_rows": 0, "extra_values": 0, "unlabelled_subtotals": 0}
     for pg, t, vals in lines:
         if pg in stopped: continue
@@ -70,9 +82,15 @@ def extract(doc, report, scope, stmt, pages, labels):
             label, synthetic = f"Unlabelled subtotal (after: {prev})", True
             stats["unlabelled_subtotals"] += 1
         if IGNORE.match(label): continue
+        mk = marker_of(t, last_letter)
+        if mk and mk[0] == "letter": last_letter = mk[1]
+        while len(stack) > 1 and mk and kinds[-1] and kinds[-1][0] == mk[0] and mk[1] > kinds[-1][1]:
+            stack.pop(); kinds.pop()                                   # next sibling closes the open sub-header
         if not vals:
-            if TOP.match(label): stack, sums = [label], {}
-            else: stack = stack[:1] + [label]
+            if TOP.match(label): stack, kinds, sums = [label], [None], {}
+            else:
+                if not mk and len(stack) > 1 and kinds[-1] is None: stack.pop(); kinds.pop()
+                stack.append(label); kinds.append(mk)
             continue
         if len(vals) > K: stats["extra_values"] += 1; vals = vals[-K:]
         if len(vals) == K:
@@ -96,7 +114,7 @@ def extract(doc, report, scope, stmt, pages, labels):
                     if v is not None:
                         sm = round(sums.get(fy, 0.0), 2)
                         checks.append((f"{report} | {scope:12} | {fy} | {label}", sm, v, abs(sm - v) < 0.02))
-            stack = [] if sec and sec in low else stack[:1]
+            stack, kinds = ([], []) if sec and sec in low else (stack[:1], kinds[:1])
             if not stack: sums = {}
         elif sec in CHECK:
             for fy, v in parsed.items():
