@@ -11,9 +11,11 @@ Q = json.loads(Path("eval/questions.json").read_text())
 only = set(sys.argv[1:])
 RES = Path("eval/results"); RES.mkdir(parents=True, exist_ok=True)
 stamp = datetime.now().strftime("%Y%m%d_%H%M")
-REFUSAL = re.compile(r"could not find|couldn.t find|not (available|included|contained|covered|present|disclosed) in|"
-                     r"outside (the )?(scope|period|coverage)|no (information|data) (on|about|for)|cannot (provide|answer|predict|forecast)|"
-                     r"do(es)? not (contain|include|cover|provide)|only covers?|beyond the (scope|reports|period)|unable to (provide|find|answer)", re.I)
+REFUSAL = re.compile(r"could not (find|locate)|couldn.t find|not (available|included|contained|covered|present|disclosed|provided|reported) (in|for)|"
+                     r"outside (the )?(scope|period|coverage)|no (information|data|figure|forecast|projection)|"
+                     r"cannot (be )?(provide|provided|answer|predict|forecast|supply|supplied|give|given|determined)|"
+                     r"do(es)? not (contain|include|cover|provide|disclose|report)|only covers?|beyond the (scope|reports|period)|"
+                     r"unable to (provide|find|answer|supply)", re.I)
 
 def num_match(e, found):
     """Match within rounding or 0.5%, in either direction, also when shown as a percentage (x100) or fraction."""

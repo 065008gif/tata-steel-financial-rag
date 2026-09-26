@@ -408,3 +408,26 @@ SCHEMAS.insert(2, {"type": "function", "function": {"name": "breakdown",
         "from_year": {"type": "string", "enum": YEARS}, "to_year": {"type": "string", "enum": YEARS},
         "scope": {"type": "string", "enum": ["consolidated", "standalone"]}},
         "required": ["total", "from_year", "to_year"]}}})
+
+
+# ---------- risk sections, for risk-evolution questions ----------
+CHUNKS = [json.loads(l) for l in open(ROOT / "data/processed/chunks.jsonl")]
+
+def list_risk_disclosures(report):
+    """Every risk-tagged narrative page of one report (page, title, short excerpt), for side-by-side comparison."""
+    rep = norm_fy(report)
+    rows = sorted((c for c in CHUNKS if c["report"] == rep and c["type"] == "narrative" and "risk" in c["topics"]), key=lambda c: c["page"])
+    out, seen = [], set()
+    for c in rows:
+        if c["page"] in seen: continue
+        seen.add(c["page"])
+        out.append({"pdf_page": c["page"], "section": c["section"], "title": (c["note"] or "")[:120],
+                    "excerpt": _compact(c["text"].split("\n\n", 1)[-1])[:350]})
+    return {"report": rep, "risk_pages": out[:30],
+            "note": "Risk-related pages of this report. Use search_documents with a specific risk name to read more or to check another report."}
+
+FUNCS["list_risk_disclosures"] = list_risk_disclosures
+SCHEMAS.append({"type": "function", "function": {"name": "list_risk_disclosures",
+    "description": "List every risk-related page (risk management, key risks, regulatory/financial/ESG risks) of ONE annual report, "
+                   "with titles and excerpts. Call it once per report when comparing how risks changed between years.",
+    "parameters": {"type": "object", "properties": {"report": {"type": "string", "enum": REPORTS}}, "required": ["report"]}}})

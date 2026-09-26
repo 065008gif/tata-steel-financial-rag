@@ -48,7 +48,9 @@ RULES
     table of values; if a claim is not true for every year shown, do not make it.
 14. Fiscal years end on 31 March: FY2023-24 is the year ended 31 March 2024, and balance-sheet values "as at 31 March
     2024" belong to FY2023-24. Convert every date in the question this way before calling tools.
-15. Risk evolution questions: call search_documents with topic "risk" and types ["narrative"] SEPARATELY for each report
+15. Risk evolution questions: FIRST call list_risk_disclosures for EACH report being compared, then use search_documents
+    (topic "risk", types ["narrative"]) SEPARATELY for each report. Financial-instrument risk notes (currency, interest,
+    credit, liquidity) appear every year and are not enough on their own. For each report
     being compared (queries such as "key risks", "risk management", "principal risks", "emerging risks"). List the named
     risks in each report. Call a risk "new" only if a targeted search of the older report for that specific risk finds no
     discussion of it. Keep business risks (risk management sections) distinct from contingent liabilities (notes).
@@ -76,7 +78,7 @@ Answer in clear prose with a small table where it helps."""
 
 # ---------- numeric grounding ----------
 IGNORE = re.compile(
-    r"FY\s?'?\d{2,4}(?:\s?[-–‑—]\s?\d{2,4})?|\bF\d{1,3}\b|(?:pp?\.|pages?|PDF\s?p(?:age)?\.?)\s?\d+(?:\s?[-–‑—]\s?F?\d+)?|"
+    r"FY\s?'?\d{2,4}(?:\s?[-–‑—]\s?\d{2,4})?|\b20\d{2}\s?[-–‑—]\s?\d{2,4}\b|\bF\d{1,3}\b|(?:pp?\.|pages?|PDF\s?p(?:age)?\.?)\s?\d+(?:\s?[-–‑—]\s?F?\d+)?|"
     r"Note\s+\d+[A-Za-z]?(?:\([a-z]\))?|\b(?-i:ISA|Ind AS|SA|AS)\s?\d+|\b(?:Section|Schedule)\s+\d+|\b(?:19|20)\d{2}\b|\d+(?:st|nd|rd|th)\b",
     re.I)
 
@@ -141,6 +143,9 @@ def unsupported_claims(answer, trace):
     for rx, item in CLAIMS:
         if re.search(rx, answer, re.I) and not re.search(rx, fetched):
             issues.append(f"You discuss '{rx.split('|')[0].strip(chr(92) + 'b')}' but never retrieved it (use get_financials: {item}).")
+    if re.search(r"\d[\d,]*\.\d{2}", answer) and not re.search(r"\bF\d{1,3}\b|PDF\s?p\s?\d|page\s+\d", answer):
+        issues.append("Your answer states figures but cites no page. Cite the report and page for every figure "
+                      "(e.g. FY2025-26 AR, consolidated profit and loss, p. F144).")
     return issues
 
 REVIEW = ("SELF-REVIEW before finalising. Rewrite your answer so that: (1) every cause, reason or attribution "
