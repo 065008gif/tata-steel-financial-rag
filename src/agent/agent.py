@@ -65,6 +65,8 @@ RULES
 20. Some note tables have no year columns and give each item as two stacked rows of values (the label may be split across
     them). The FIRST row is the report's current year and the SECOND row is the prior year. Where a total exists, confirm
     the year by reconciling it with the statements (e.g. segment totals against consolidated figures).
+21. Altman Z'', Piotroski F and Beneish M scores must come from compute_scores. Never compute them yourself or mix in
+    other variants (e.g. the original five-variable Altman Z). Report the tool's score, zone and disclosed proxies.
 
 STANDARD DEFINITIONS (state the definition you used)
 - Current ratio = Total current assets / Total current liabilities
@@ -88,7 +90,7 @@ SIGNED = re.compile(r"(?:(?<![\w.])([+\-–−‑]))?(\d[\d,]*(?:\.\d+)?)")
 
 def numbers_in(text, signed=False):
     """Numbers in text (years, pages, notes, small counters ignored). signed=True -> [(value, had_explicit_sign)]."""
-    t = re.sub(r"(?<=\d)[\s\u00a0\u202f\u2009](?=\d{3}(?:\D|$))", "", str(text))
+    t = re.sub(r"(?<=\d)[\s\u00a0\u202f\u2009](?=(?:\d{2}[\s\u00a0\u202f\u2009])*\d{3}(?:\D|$))", "", str(text))
     t = DATES.sub(" ", t)
     t = IGNORE.sub(" ", t)
     out = []
@@ -146,6 +148,9 @@ def unsupported_claims(answer, trace):
     if re.search(r"\d[\d,]*\.\d{2}", answer) and not re.search(r"\bF\d{1,3}\b|PDF\s?p\s?\d|page\s+\d", answer):
         issues.append("Your answer states figures but cites no page. Cite the report and page for every figure "
                       "(e.g. FY2025-26 AR, consolidated profit and loss, p. F144).")
+    if re.search(r"altman|piotroski|beneish", answer, re.I) and not any(t["tool"] == "compute_scores" for t in trace):
+        issues.append("You discuss Altman/Piotroski/Beneish scores without calling compute_scores. These scores must come "
+                      "from compute_scores (verified inputs, defined formulas); never compute or reformulate them yourself.")
     return issues
 
 REVIEW = ("SELF-REVIEW before finalising. Rewrite your answer so that: (1) every cause, reason or attribution "

@@ -1,6 +1,7 @@
 """Tests for src/analysis/scores.py: formulas on synthetic data (hand-computed), then checks on the real data."""
-import json, math, sys
+import json, math, re, sys
 from pathlib import Path
+import pymupdf
 import pytest
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -36,21 +37,51 @@ def synthetic(monkeypatch):
     fin = {"consolidated": _scope(ALTMAN_T, T)}
     fin["consolidated"]["total_assets"]["values"][T2] = {"value": 900, "source": "FY2024-25 Annual Report, page F9"}
     rep = {T: {"consolidated": _scope(REPORT_T, T)}}
+    # retained earnings: T and T1 in the FY2025-26 report, T1 also (differently) in the FY2024-25 report
+    re_ = {T: {"consolidated": {T: _re(200, "F20"), T1: _re(180, "F20")}},
+           T1: {"consolidated": {T1: _re(170, "F30")}}}
     monkeypatch.setattr(scores, "FIN", fin)
     monkeypatch.setattr(scores, "FIN_REP", rep)
-    return fin, rep
+    monkeypatch.setattr(scores, "RE", re_)
+    return fin, rep, re_
+
+def _re(v, label):
+    return {"value": v, "pdf_page": 1, "page_label": label, "method": "synthetic", "verified_on_page": True}
 
 
 # ---------- formula tests (synthetic) ----------
 def test_altman_formula(synthetic):
     r = scores.altman_z(T)
-    # X1 = 100/1000, X2 = 350/1000, X3 = 100/1000, X4 = 400/600
-    assert r["components"] == pytest.approx({"X1": 0.1, "X2": 0.35, "X3": 0.1, "X4": 0.666667}, abs=1e-6)
-    # 6.56*0.1 + 3.26*0.35 + 6.72*0.1 + 1.05*0.666667 = 0.656 + 1.141 + 0.672 + 0.7 = 3.169
-    assert r["score"] == pytest.approx(3.169, abs=1e-4)
+    # X1 = 100/1000, X2 = retained earnings 200/1000, X3 = 100/1000, X4 = 400/600
+    assert r["components"] == pytest.approx({"X1": 0.1, "X2": 0.2, "X3": 0.1, "X4": 0.666667}, abs=1e-6)
+    # 6.56*0.1 + 3.26*0.2 + 6.72*0.1 + 1.05*0.666667 = 0.656 + 0.652 + 0.672 + 0.7 = 2.68
+    assert r["score"] == pytest.approx(2.68, abs=1e-4)
     assert r["interpretation"] == "safe"
-    assert r["missing"] == [] and r["proxies"]
+    assert r["missing"] == [] and r["fallbacks"] == [] and r["proxies"]
+    assert r["x2_numerator"] == "retained_earnings" and "other_equity[FY2025-26]" not in r["inputs"]
+    assert not any("proxy for retained earnings" in p for p in r["proxies"])
+    assert r["inputs"]["retained_earnings[FY2025-26]"]["value"] == 200
     assert r["inputs"]["total_assets[FY2025-26]"]["source"].startswith("FY2025-26 Annual Report")
+
+def test_altman_retained_earnings_from_latest_report(synthetic):
+    synthetic[0]["consolidated"] = _scope({k: {T1: v[T]} for k, v in ALTMAN_T.items()}, T)
+    r = scores.altman_z(T1)
+    # FY2024-25 is in both the FY2024-25 (170) and FY2025-26 (180) reports: the latest wins
+    assert r["inputs"]["retained_earnings[FY2024-25]"]["value"] == 180
+    assert r["inputs"]["retained_earnings[FY2024-25]"]["source"].startswith("FY2025-26 Annual Report")
+    assert r["components"]["X2"] == pytest.approx(0.18, abs=1e-6)
+
+def test_altman_falls_back_to_other_equity(synthetic):
+    del synthetic[2][T]["consolidated"][T]                    # no retained earnings for FY2025-26 anywhere
+    synthetic[2][T1]["consolidated"][T] = dict(_re(999, "F9"), verified_on_page=False)   # unverified: ignored
+    r = scores.altman_z(T)
+    # X2 = other_equity 350/1000; 0.656 + 1.141 + 0.672 + 0.7 = 3.169
+    assert r["components"]["X2"] == pytest.approx(0.35, abs=1e-6)
+    assert r["score"] == pytest.approx(3.169, abs=1e-4) and r["interpretation"] == "safe"
+    assert r["x2_numerator"] == "other_equity" and r["inputs"]["other_equity[FY2025-26]"]["value"] == 350
+    assert "retained_earnings[FY2025-26]" not in r["inputs"]
+    assert any("other_equity as a proxy for retained earnings" in p for p in r["proxies"])
+    assert any(f.startswith("retained_earnings[FY2025-26]") for f in r["fallbacks"])
 
 @pytest.mark.parametrize("z, zone", [(2.61, "safe"), (2.60, "grey"), (1.10, "grey"), (1.09, "distress"), (None, None)])
 def test_altman_zones(z, zone):
@@ -128,6 +159,7 @@ def test_report_fallback_is_recorded(synthetic):
 def test_missing_inputs_give_none(synthetic):
     del synthetic[1][T]["consolidated"]["trade_receivables"]
     del synthetic[0]["consolidated"]["other_equity"]
+    synthetic[2].clear()                                       # no retained earnings -> other_equity needed
     b, a = scores.beneish_m(T), scores.altman_z(T)
     for r in (a, b):
         assert r["score"] is None and r["interpretation"] is None and r["missing"] and r["reason"]
@@ -157,12 +189,58 @@ def real():
 
 def test_real_altman_consolidated_fy2025_26():
     r = scores.altman_z("FY2025-26", "consolidated")
-    assert r["inputs"]["total_assets[FY2025-26]"]["value"] == 301254.11
-    assert r["inputs"]["total_equity[FY2025-26]"]["value"] == 103780.45
+    ins = r["inputs"]
+    assert ins["total_assets[FY2025-26]"]["value"] == 301254.11
+    assert ins["total_equity[FY2025-26]"]["value"] == 103780.45
     assert r["components"]["X4"] == pytest.approx(103780.45 / 197473.66, abs=1e-4)
     assert r["components"]["X4"] == pytest.approx(0.525544, abs=1e-4)
     assert r["components"]["X1"] == pytest.approx(-0.081833, abs=1e-4)
-    assert isinstance(r["score"], float) and r["interpretation"] in ("safe", "grey", "distress")
+    # X2 uses retained earnings (Other equity note, F197), not other equity (1,00,920.21)
+    assert r["x2_numerator"] == "retained_earnings" and "other_equity[FY2025-26]" not in ins
+    assert ins["retained_earnings[FY2025-26]"]["value"] == 39674.80
+    assert "page F197" in ins["retained_earnings[FY2025-26]"]["source"]
+    assert r["components"]["X2"] == pytest.approx(39674.80 / 301254.11, abs=1e-6)
+    assert not any("proxy for retained earnings" in p for p in r["proxies"]) and r["fallbacks"] == []
+    # Z'' recomputed from the raw inputs and from the rounded components agrees with the reported score
+    v = lambda k: ins[f"{k}[FY2025-26]"]["value"]
+    ta = v("total_assets")
+    x = {"X1": (v("total_current_assets") - v("total_current_liabilities")) / ta, "X2": v("retained_earnings") / ta,
+         "X3": (v("profit_before_tax") + v("finance_costs")) / ta, "X4": v("total_equity") / (ta - v("total_equity"))}
+    assert r["components"] == pytest.approx(x, abs=1e-6)
+    z = 6.56 * x["X1"] + 3.26 * x["X2"] + 6.72 * x["X3"] + 1.05 * x["X4"]
+    assert r["score"] == pytest.approx(z, abs=1e-4)
+    assert r["score"] == pytest.approx(sum(r["weights"][k] * c for k, c in r["components"].items()), abs=1e-4)
+    assert r["score"] == pytest.approx(0.9604, abs=1e-4) and r["interpretation"] == "distress"
+
+@pytest.mark.parametrize("scope", ["consolidated", "standalone"])
+def test_real_altman_uses_retained_earnings_every_year(real, scope):
+    for fy, r in real[scope]["scores"]["altman_z"].items():
+        assert r["x2_numerator"] == "retained_earnings" and r["fallbacks"] == [], fy
+
+def _inr(v):
+    i, d = f"{abs(v):.2f}".split(".")
+    head, tail = i[:-3], i[-3:]
+    groups = []
+    while head: groups.insert(0, head[-2:]); head = head[:-2]
+    s = ",".join(groups + [tail]) + "." + d
+    return f"({s})" if v < 0 else s
+
+def test_retained_earnings_values_are_on_their_pages():
+    data = json.loads((ROOT / "data/processed/retained_earnings.json").read_text())
+    checked, years = 0, {sc: set() for sc in ("consolidated", "standalone")}
+    for rep, per_scope in data.items():
+        doc = pymupdf.open(ROOT / f"data/raw/TataSteel_{rep}.pdf")
+        pmap = {p["page"]: p for p in json.loads((ROOT / f"data/interim/page_map_{rep}.json").read_text())}
+        for scope, per_year in per_scope.items():
+            for fy, rec in per_year.items():
+                if not rec["verified_on_page"]: continue
+                text = re.sub(r"\s+", " ", doc[rec["pdf_page"] - 1].get_text())
+                assert _inr(rec["value"]) in text, (rep, scope, fy, rec)
+                assert "retained earnings" in text.lower() and "Other equity" in text
+                assert pmap[rec["pdf_page"]]["label"] == rec["page_label"] and pmap[rec["pdf_page"]]["scope"] == scope
+                checked += 1; years[scope].add(fy)
+    assert checked == 16
+    assert all(ys == {"FY2021-22", *scores.SCORE_YEARS} for ys in years.values())
 
 @pytest.mark.parametrize("scope", ["consolidated", "standalone"])
 @pytest.mark.parametrize("fy", ["FY2023-24", "FY2024-25", "FY2025-26"])

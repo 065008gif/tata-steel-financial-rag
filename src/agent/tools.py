@@ -439,7 +439,7 @@ import scores as S
 
 SCORE_NAMES = {"altman_z": "Altman Z'' (book equity)", "piotroski_f": "Piotroski F-score", "beneish_m": "Beneish M-score (8-variable)"}
 COMPONENT_LABELS = {
-    "X1": "X1 (current assets - current liabilities) / total assets", "X2": "X2 other equity / total assets",
+    "X1": "X1 (current assets - current liabilities) / total assets", "X2": "X2 retained earnings / total assets",
     "X3": "X3 (PBT + finance costs) / total assets", "X4": "X4 total equity / (total assets - total equity)",
     "DSRI": "DSRI receivables-to-sales index", "GMI": "GMI gross margin index", "AQI": "AQI asset quality index",
     "SGI": "SGI sales growth index", "DEPI": "DEPI depreciation index", "SGAI": "SGAI other-expenses (SG&A proxy) index",

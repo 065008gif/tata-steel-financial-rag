@@ -1179,7 +1179,7 @@
     "page_label": "F256"
    }
   ],
-  "note": "Reported as 'Segment results before exceptional items, interest, tax and depreciation' (i.e. segment EBITDA), note 43, F256; definition on F258. Verified: segments sum to 34,847.73 and reconcile to profit before exceptional items and tax 17,001.15."
+  "note": "Reported as 'Segment results before exceptional items, interest, tax and depreciation' (segment EBITDA), note 43, F256; definition F258. Verified: segments sum to 34,847.73 and reconcile to PBEIT 17,001.15."
  },
  {
   "id": "G1",
@@ -1297,5 +1297,293 @@
   ],
   "expected_sources": [],
   "note": "Graded by hand; grounding statistics recorded automatically."
+ },
+ {
+  "id": "E2",
+  "category": "composite",
+  "question": "Calculate Tata Steel's consolidated Altman Z'' score for FY2024-25 and FY2025-26 and interpret the zone.",
+  "expected_numbers": [
+   0.8666,
+   0.9604
+  ],
+  "inputs": [
+   {
+    "item": "total_current_assets",
+    "fiscal_year": "FY2024-25",
+    "scope": "consolidated",
+    "value": 68391.54,
+    "report": "FY2025-26",
+    "pdf_page": 420,
+    "page_label": "F142",
+    "components": null
+   },
+   {
+    "item": "total_current_liabilities",
+    "fiscal_year": "FY2024-25",
+    "scope": "consolidated",
+    "value": 86093.55,
+    "report": "FY2025-26",
+    "pdf_page": 421,
+    "page_label": "F143",
+    "components": null
+   },
+   {
+    "item": "total_assets",
+    "fiscal_year": "FY2024-25",
+    "scope": "consolidated",
+    "value": 279394.8,
+    "report": "FY2025-26",
+    "pdf_page": 420,
+    "page_label": "F142",
+    "components": null
+   },
+   {
+    "item": "other_equity",
+    "fiscal_year": "FY2024-25",
+    "scope": "consolidated",
+    "value": 89922.19,
+    "report": "FY2025-26",
+    "pdf_page": 421,
+    "page_label": "F143",
+    "components": null
+   },
+   {
+    "item": "profit_before_tax",
+    "fiscal_year": "FY2024-25",
+    "scope": "consolidated",
+    "value": 8412.87,
+    "report": "FY2025-26",
+    "pdf_page": 422,
+    "page_label": "F144",
+    "components": null
+   },
+   {
+    "item": "finance_costs",
+    "fiscal_year": "FY2024-25",
+    "scope": "consolidated",
+    "value": 7340.95,
+    "report": "FY2025-26",
+    "pdf_page": 422,
+    "page_label": "F144",
+    "components": null
+   },
+   {
+    "item": "total_equity",
+    "fiscal_year": "FY2024-25",
+    "scope": "consolidated",
+    "value": 91352.78,
+    "report": "FY2025-26",
+    "pdf_page": 421,
+    "page_label": "F143",
+    "components": null
+   },
+   {
+    "item": "total_current_assets",
+    "fiscal_year": "FY2025-26",
+    "scope": "consolidated",
+    "value": 72265.11,
+    "report": "FY2025-26",
+    "pdf_page": 420,
+    "page_label": "F142",
+    "components": null
+   },
+   {
+    "item": "total_current_liabilities",
+    "fiscal_year": "FY2025-26",
+    "scope": "consolidated",
+    "value": 96917.64,
+    "report": "FY2025-26",
+    "pdf_page": 421,
+    "page_label": "F143",
+    "components": null
+   },
+   {
+    "item": "total_assets",
+    "fiscal_year": "FY2025-26",
+    "scope": "consolidated",
+    "value": 301254.11,
+    "report": "FY2025-26",
+    "pdf_page": 420,
+    "page_label": "F142",
+    "components": null
+   },
+   {
+    "item": "other_equity",
+    "fiscal_year": "FY2025-26",
+    "scope": "consolidated",
+    "value": 100920.21,
+    "report": "FY2025-26",
+    "pdf_page": 421,
+    "page_label": "F143",
+    "components": null
+   },
+   {
+    "item": "profit_before_tax",
+    "fiscal_year": "FY2025-26",
+    "scope": "consolidated",
+    "value": 15968.69,
+    "report": "FY2025-26",
+    "pdf_page": 422,
+    "page_label": "F144",
+    "components": null
+   },
+   {
+    "item": "finance_costs",
+    "fiscal_year": "FY2025-26",
+    "scope": "consolidated",
+    "value": 7167.06,
+    "report": "FY2025-26",
+    "pdf_page": 422,
+    "page_label": "F144",
+    "components": null
+   },
+   {
+    "item": "total_equity",
+    "fiscal_year": "FY2025-26",
+    "scope": "consolidated",
+    "value": 103780.45,
+    "report": "FY2025-26",
+    "pdf_page": 421,
+    "page_label": "F143",
+    "components": null
+   }
+  ],
+  "must_abstain": false,
+  "must_mention": [
+   "distress"
+  ],
+  "expected_sources": [],
+  "note": ""
+ },
+ {
+  "id": "E3",
+  "category": "composite",
+  "question": "What is Tata Steel's consolidated Piotroski F-score for FY2025-26, and what does it indicate?",
+  "expected_numbers": [],
+  "inputs": [
+   {
+    "item": "profit_for_the_year",
+    "fiscal_year": "FY2024-25",
+    "scope": "consolidated",
+    "value": 3173.78,
+    "report": "FY2025-26",
+    "pdf_page": 422,
+    "page_label": "F144",
+    "components": null
+   },
+   {
+    "item": "total_assets",
+    "fiscal_year": "FY2024-25",
+    "scope": "consolidated",
+    "value": 279394.8,
+    "report": "FY2025-26",
+    "pdf_page": 420,
+    "page_label": "F142",
+    "components": null
+   },
+   {
+    "item": "net_cash_from_operating",
+    "fiscal_year": "FY2024-25",
+    "scope": "consolidated",
+    "value": 23137.58,
+    "report": "FY2025-26",
+    "pdf_page": 426,
+    "page_label": "F148",
+    "components": null
+   },
+   {
+    "item": "profit_for_the_year",
+    "fiscal_year": "FY2025-26",
+    "scope": "consolidated",
+    "value": 10885.82,
+    "report": "FY2025-26",
+    "pdf_page": 422,
+    "page_label": "F144",
+    "components": null
+   },
+   {
+    "item": "total_assets",
+    "fiscal_year": "FY2025-26",
+    "scope": "consolidated",
+    "value": 301254.11,
+    "report": "FY2025-26",
+    "pdf_page": 420,
+    "page_label": "F142",
+    "components": null
+   },
+   {
+    "item": "net_cash_from_operating",
+    "fiscal_year": "FY2025-26",
+    "scope": "consolidated",
+    "value": 35064.46,
+    "report": "FY2025-26",
+    "pdf_page": 426,
+    "page_label": "F148",
+    "components": null
+   }
+  ],
+  "must_abstain": false,
+  "must_mention": [
+   "re:\\b8\\s*(/|out of)\\s*9\\b|f.?score[^\\n]{0,60}?\\b8\\b",
+   "strong"
+  ],
+  "expected_sources": [],
+  "note": "Score is a small integer, so it is checked by pattern (e.g. '8/9' or 'F-score of 8')."
+ },
+ {
+  "id": "E4",
+  "category": "composite",
+  "question": "Compute Tata Steel's consolidated Beneish M-score for FY2025-26. Is there an earnings-manipulation flag?",
+  "expected_numbers": [
+   -2.9793
+  ],
+  "inputs": [
+   {
+    "item": "trade_receivables",
+    "fiscal_year": "FY2024-25",
+    "scope": "consolidated",
+    "value": 5260.06,
+    "report": "FY2025-26",
+    "pdf_page": 420,
+    "page_label": "F142",
+    "components": null
+   },
+   {
+    "item": "revenue_from_operations",
+    "fiscal_year": "FY2024-25",
+    "scope": "consolidated",
+    "value": 218542.51,
+    "report": "FY2025-26",
+    "pdf_page": 422,
+    "page_label": "F144",
+    "components": null
+   },
+   {
+    "item": "trade_receivables",
+    "fiscal_year": "FY2025-26",
+    "scope": "consolidated",
+    "value": 4916.89,
+    "report": "FY2025-26",
+    "pdf_page": 420,
+    "page_label": "F142",
+    "components": null
+   },
+   {
+    "item": "revenue_from_operations",
+    "fiscal_year": "FY2025-26",
+    "scope": "consolidated",
+    "value": 232139.94,
+    "report": "FY2025-26",
+    "pdf_page": 422,
+    "page_label": "F144",
+    "components": null
+   }
+  ],
+  "must_abstain": false,
+  "must_mention": [
+   "unlikely"
+  ],
+  "expected_sources": [],
+  "note": ""
  }
 ]

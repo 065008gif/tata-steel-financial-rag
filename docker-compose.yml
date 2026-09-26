@@ -7,6 +7,8 @@ services:
     restart: unless-stopped
     volumes:
       - ./qdrant_storage:/qdrant/storage          # bind mount: the existing index, persisted on disk
+    ports:
+      - "127.0.0.1:6333:6333"                     # local only: lets host scripts (evaluation, re-indexing) reach Qdrant
 
   backend:
     build: .

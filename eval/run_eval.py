@@ -54,7 +54,7 @@ for q in Q:
     cited = [l for l in labels if re.search(rf"\b{l}\b", answer)]
     retrieved = [l for l in labels if re.search(rf"\b{l}\b", trace_text)]
     refused = bool(REFUSAL.search(answer))
-    mentions = [m for m in q["must_mention"] if m.lower() in answer.lower()]
+    mentions = [m for m in q["must_mention"] if (re.search(m[3:], answer, re.I) if m.startswith("re:") else m.lower() in answer.lower())]
     r = dict(id=q["id"], category=q["category"], question=q["question"], seconds=round(time.time() - t),
              tool_calls=len(info["trace"]), numeric=f"{sum(nh)}/{len(exp)}" if exp else None,
              numeric_all=all(nh) if exp else None, missed_numbers=[e for e, h in zip(exp, nh) if not h],

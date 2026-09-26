@@ -11,6 +11,8 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 FIN = json.loads((ROOT / "data/processed/financials.json").read_text())
 FIN_REP = json.loads((ROOT / "data/processed/financials_by_report.json").read_text())
+_RE_PATH = ROOT / "data/processed/retained_earnings.json"
+RE = json.loads(_RE_PATH.read_text()) if _RE_PATH.exists() else {}
 YEARS = ["FY2021-22", "FY2022-23", "FY2023-24", "FY2024-25", "FY2025-26"]
 SCORE_YEARS = ["FY2022-23", "FY2023-24", "FY2024-25", "FY2025-26"]
 
@@ -75,28 +77,58 @@ def altman_zone(z):
     if z is None: return None
     return "safe" if z > 2.60 else ("grey" if z >= 1.10 else "distress")
 
+def retained_earnings(fy, scope="consolidated"):
+    """Page-verified retained earnings (closing balance) for fy from the LATEST report containing it, or None.
+    Returns (report, record) from retained_earnings.json."""
+    for rep in sorted(RE, reverse=True):
+        rec = RE[rep].get(scope, {}).get(fy)
+        if rec and rec.get("verified_on_page") and isinstance(rec.get("value"), (int, float)) and math.isfinite(rec["value"]):
+            return rep, rec
+    return None
+
 def altman_z(fy, scope="consolidated"):
-    """Z'' = 6.56 X1 + 3.26 X2 + 6.72 X3 + 1.05 X4, single year, values from financials.json (latest report)."""
-    proxies = ["X2 uses other_equity as a proxy for retained earnings (retained earnings are not a canonical item).",
-               "X4 uses book equity (total_equity) instead of market value of equity, which is not in the reports; "
+    """Z'' = 6.56 X1 + 3.26 X2 + 6.72 X3 + 1.05 X4, single year, values from financials.json (latest report).
+    X2 = retained earnings / total assets; falls back to other_equity (recorded) if retained earnings are unavailable."""
+    proxies = ["X4 uses book equity (total_equity) instead of market value of equity, which is not in the reports; "
                "this is the Z'' book-equity variant.",
                "X3 EBIT = profit_before_tax + finance_costs (after exceptional items)."]
     ins = _Inputs(scope)
     ta, te = ins.get("total_assets", fy), ins.get("total_equity", fy)
     ca, cl = ins.get("total_current_assets", fy), ins.get("total_current_liabilities", fy)
-    oe, pbt, fc = ins.get("other_equity", fy), ins.get("profit_before_tax", fy), ins.get("finance_costs", fy)
-    basis = "single year; latest reported values (financials.json)"
+    pbt, fc = ins.get("profit_before_tax", fy), ins.get("finance_costs", fy)
+    found = retained_earnings(fy, scope)
+    if found:
+        rep, rec = found
+        re_v, x2_basis = rec["value"], "retained_earnings"
+        ins.inputs[f"retained_earnings[{fy}]"] = {
+            "item": "retained_earnings", "fiscal_year": fy, "value": re_v,
+            "source": f"{rep} Annual Report, {scope} note 'Other equity' (A. Retained earnings, balance at the end "
+                      f"of the year), page {rec['page_label']}",
+            "basis": "retained_earnings.json (latest report containing the year)"}
+        ta_rep = FIN.get(scope, {}).get("total_assets", {}).get("values", {}).get(fy, {}).get("report")
+        if ta_rep and ta_rep != rep:
+            proxies.append(f"Retained earnings for {fy} are from the {rep} report, total assets from the {ta_rep} report "
+                           f"(the latest report containing each); the {ta_rep} report does not give {fy} closing "
+                           f"retained earnings, so the two may be on different (restated) bases.")
+    else:
+        x2_basis = "other_equity"
+        re_v = ins.get("other_equity", fy)
+        proxies.insert(0, "X2 uses other_equity as a proxy for retained earnings: no page-verified retained earnings "
+                          f"for {fy} ({scope}) in retained_earnings.json.")
+        ins.fallbacks.append(f"retained_earnings[{fy}]: not available for scope {scope}; X2 uses other_equity")
+    basis = "single year; latest reported values (financials.json, retained_earnings.json)"
+    extra = {"x2_numerator": x2_basis}
     if ins.missing:
-        return _result("altman_z", fy, scope, ins, basis, proxies, extra={"reason": "missing inputs: " + "; ".join(ins.missing)})
-    x = {"X1": _div(ca - cl, ta), "X2": _div(oe, ta), "X3": _div(pbt + fc, ta), "X4": _div(te, ta - te)}
+        return _result("altman_z", fy, scope, ins, basis, proxies, extra={**extra, "reason": "missing inputs: " + "; ".join(ins.missing)})
+    x = {"X1": _div(ca - cl, ta), "X2": _div(re_v, ta), "X3": _div(pbt + fc, ta), "X4": _div(te, ta - te)}
     bad = [k for k, v in x.items() if v is None]
     if bad:
         ins.missing.append(f"division by zero in {', '.join(bad)}")
         return _result("altman_z", fy, scope, ins, basis, proxies, components={k: _r(v) for k, v in x.items()},
-                       extra={"reason": "; ".join(ins.missing)})
+                       extra={**extra, "reason": "; ".join(ins.missing)})
     z = sum(ALTMAN_W[k] * v for k, v in x.items())
     return _result("altman_z", fy, scope, ins, basis, proxies, round(z, 4), altman_zone(z), {k: _r(v) for k, v in x.items()},
-                   {"thresholds": "> 2.60 safe; 1.10-2.60 grey; < 1.10 distress", "weights": ALTMAN_W})
+                   {**extra, "thresholds": "> 2.60 safe; 1.10-2.60 grey; < 1.10 distress", "weights": ALTMAN_W})
 
 
 # ---------- Piotroski F-score ----------

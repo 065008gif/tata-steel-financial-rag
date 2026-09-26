@@ -87,7 +87,10 @@ add("E1", "composite", "Break down Tata Steel's consolidated ROE for FY2023-24 a
     [inp(k, y) for y in ("FY2022-23", "FY2023-24", "FY2024-25", "FY2025-26") for k in ("total_assets", "total_equity")])
 # F. segments, G. narrative and risk (graded on content, not fixed numbers)
 add("F1", "segment", "What was the EBITDA of Tata Steel's India, Netherlands and UK segments in FY2025-26?",
-    must_mention=["India", "Netherlands", "UK"], note="Numbers to be filled in by hand from the segment note.")
+    [33035.63, 2721.52, -2568.99], must_mention=["India", "Netherlands", "UK"],
+    sources=[{"report": "FY2025-26", "page_label": "F256"}],
+    note="Reported as 'Segment results before exceptional items, interest, tax and depreciation' (segment EBITDA), note 43, "
+         "F256; definition F258. Verified: segments sum to 34,847.73 and reconcile to PBEIT 17,001.15.")
 add("G1", "risk_evolution", "What new risks appear in Tata Steel's FY2025-26 annual report that were not discussed in the FY2022-23 report?",
     note="Graded by hand against the risk sections of both reports.")
 add("G2", "narrative", "How does management explain the losses and restructuring of Tata Steel UK?",
@@ -105,6 +108,20 @@ add("I1", "verdict", "Give an overall financial health verdict for Tata Steel (c
     "covering liquidity, leverage, profitability and cash flow.", must_mention=["liquidity", "leverage", "profitab"],
     note="Graded by hand; grounding statistics recorded automatically.")
 
+# E2-E4: composite scores (values from src/analysis/scores.py, independently verified; see docs/claude_code/README.md)
+sys.path.insert(0, "src/analysis")
+from scores import altman_z, piotroski_f, beneish_m
+AZ = ("total_current_assets", "total_current_liabilities", "total_assets", "other_equity", "profit_before_tax", "finance_costs", "total_equity")
+add("E2", "composite", "Calculate Tata Steel's consolidated Altman Z'' score for FY2024-25 and FY2025-26 and interpret the zone.",
+    [altman_z(y, C)["score"] for y in ("FY2024-25", "FY2025-26")], [inp(k, y) for y in ("FY2024-25", "FY2025-26") for k in AZ],
+    must_mention=[(lambda r: r.get("zone") or r.get("interpretation"))(altman_z("FY2025-26", C))])
+add("E3", "composite", "What is Tata Steel's consolidated Piotroski F-score for FY2025-26, and what does it indicate?",
+    [], [inp(k, y) for y in ("FY2024-25", "FY2025-26") for k in ("profit_for_the_year", "total_assets", "net_cash_from_operating")],
+    must_mention=["re:\\b" + str(piotroski_f("FY2025-26", C)["score"]) + "\\s*(/|out of)\\s*9\\b|f.?score[^\\n]{0,60}?\\b" + str(piotroski_f("FY2025-26", C)["score"]) + "\\b", "strong"],
+    note="Score is a small integer, so it is checked by pattern (e.g. '8/9' or 'F-score of 8').")
+add("E4", "composite", "Compute Tata Steel's consolidated Beneish M-score for FY2025-26. Is there an earnings-manipulation flag?",
+    [beneish_m("FY2025-26", C)["score"]], [inp(k, y) for y in ("FY2024-25", "FY2025-26") for k in ("trade_receivables", "revenue_from_operations")],
+    must_mention=["unlikely"])
 Path("eval/questions.json").write_text(json.dumps(Q, indent=1))
 print(f"{len(Q)} questions written to eval/questions.json")
 from collections import Counter
