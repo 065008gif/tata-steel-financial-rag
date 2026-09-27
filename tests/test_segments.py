@@ -165,7 +165,8 @@ def test_api_endpoint(stubbed):
     assert body["years"] == SA.YEARS
     uk = next(s for s in body["segments"] if s["key"] == "tata_steel_uk")
     assert uk["values"]["FY2025-26"]["segment_results"] == -2568.99
-    assert uk["sources"]["FY2025-26"] == {"report": "FY2025-26", "page_label": "F256", "pdf_page": 534}
+    assert uk["sources"]["FY2025-26"] == {"report": "FY2025-26", "page_label": "F256", "pdf_page": 534,
+                                          "url": "/api/pdf/FY2025-26#page=534"}
     assert body["totals"]["values"]["FY2021-22"]["external_revenue"] == 243959.17
     assert body["totals"]["sources"]["FY2021-22"]["report"] == "FY2022-23"
     assert "segment_results" in body["eliminations"]["restated"]["FY2024-25"]

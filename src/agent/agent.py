@@ -21,7 +21,9 @@ RULES
 1. Every number you state must come from a tool result. Use get_financials FIRST for balance sheet, profit and loss and cash flow
    figures (exact rows for every year plus exact year-on-year changes); use get_line_items only for items it lacks. Use search_documents for notes, segments, borrowings detail, risks, management commentary and auditor matters.
 2. NEVER do arithmetic in your head. Use calculate for every ratio, difference, percentage, average and growth rate.
-   Batch all calculations into ONE calculate call, separated by ';'.
+   Batch all calculations into ONE calculate call, separated by ';'. Write every calculate expression from retrieved
+   figures only, e.g. "(279394.80 + 301254.11) / 2" - never type in a number you worked out yourself (an average, a
+   difference, a share); such numbers do not count as verified.
 3. Default to CONSOLIDATED figures unless the user asks for standalone. Always say which you used.
 4. Cite every figure: report, statement or section, and page, e.g. (FY2025-26 AR, consolidated balance sheet, p. F143).
 5. If a value is marked restated, use the restated value and mention the originally reported figure.
@@ -73,6 +75,12 @@ RULES
 23. The answer is shown in a chat window that renders Markdown but NOT LaTeX: never use \\( \\) \\[ \\] or commands like
     \\frac. Write any formula in plain text, e.g. "(29,997.19 + 51,576.73) / 92,432.74 = 0.88x". Never mention internal
     tool names (get_financials, calculate, compute_metric, search_documents...); say "computed from the reported figures".
+24. Never write approximations for figures: no "≈", "~", "around", "about", "roughly" or "approximately" next to a number.
+    State the exact computed value as the tool returned it (e.g. 2,810.36 crore, 34.81%).
+25. DuPont / ROE decomposition questions: call dupont (default average-equity basis, matching the ROE definition below)
+    and paste its tables. It returns every intermediate value (average assets and equity, EBIT, each ratio, the product
+    check, changes versus the prior year and the composition of the change in equity). Do not compute any other
+    intermediate value (a difference, a share, a growth rate) yourself; if you need one it does not return, use calculate.
 
 STANDARD DEFINITIONS (state the definition you used)
 - Current ratio = Total current assets / Total current liabilities
@@ -125,11 +133,14 @@ def collect(obj, pools):
         for v in obj: collect(v, pools)
 
 def close(v, c):
-    """v equals c (or c as a percentage/fraction) exactly, or rounded/truncated to 0-2 decimals."""
+    """v equals c (or c as a percentage/fraction) exactly, or rounded/truncated to 0-4 decimals.
+    A value exactly half-way (e.g. 290,324.455) matches either rounding (float round() may go either way)."""
+    dv = min(len(repr(v).split(".")[1].rstrip("0")) if "." in repr(v) else 0, 4)
     for x in (c, c * 100, c / 100):
         if x == v: return True
         for d in (0, 1, 2, 3, 4):
             if round(x, d) == v or math.trunc(x * 10 ** d) / 10 ** d == v: return True
+        if abs(abs(x) - abs(v)) <= 0.5 * 10 ** -dv + 1e-9 and (x >= 0) == (v >= 0): return True
     return False
 
 def grounded(v, explicit_sign, pools):
@@ -141,6 +152,15 @@ CLAIMS = [(r"inventor", "inventories"), (r"receivable", "trade_receivables"), (r
           (r"payable", "trade_payables"), (r"\bcash and cash equivalents\b|\bcash balance", "cash_and_cash_equivalents")]
 DOC_ATTR = re.compile(r"management discussion|md&a|commentary|management (notes|cites|highlights|says|attribut|state)|"
                       r"report (notes|states|highlights|cites|mentions|attributes)|according to (the )?(report|management)", re.I)
+
+APPROX = re.compile(r"(?:≈|~|\b(?:around|about|roughly|approximately|approx\.?))\s*(?:₹|INR|Rs\.?)?\s*[-–−+]?\d", re.I)
+
+def grounding_view(tool, result):
+    """What a tool result contributes to the grounding pools. calculate: only its results - the operands the model typed
+    into an expression are not evidence (a hand-computed average typed into calculate would otherwise count as verified)."""
+    if tool != "calculate" or not isinstance(result, dict): return result
+    if "results" in result: return {"results": [grounding_view(tool, r) for r in result["results"]]}
+    return {k: v for k, v in result.items() if k != "expression"}
 
 def unsupported_claims(answer, trace):
     """Rule-based check for claims without evidence: document attributions without a search, drivers never fetched."""
@@ -154,6 +174,10 @@ def unsupported_claims(answer, trace):
     if re.search(r"\d[\d,]*\.\d{2}", answer) and not re.search(r"\bF\d{1,3}\b|PDF\s?p\s?\d|page\s+\d", answer):
         issues.append("Your answer states figures but cites no page. Cite the report and page for every figure "
                       "(e.g. FY2025-26 AR, consolidated profit and loss, p. F144).")
+    approx = sorted({m.group(0).strip() for m in APPROX.finditer(answer)})
+    if approx:
+        issues.append(f"Approximate figures {approx}: never write '≈', '~', 'around', 'about', 'roughly' or 'approximately' "
+                      "next to a number. State the exact computed value (e.g. 2,810.36 crore, 34.81%).")
     if re.search(r"altman|piotroski|beneish", answer, re.I) and not any(t["tool"] == "compute_scores" for t in trace):
         issues.append("You discuss Altman/Piotroski/Beneish scores without calling compute_scores. These scores must come "
                       "from compute_scores (verified inputs, defined formulas); never compute or reformulate them yourself.")
@@ -211,7 +235,7 @@ def ask(question, max_steps=24, max_fixes=2, verbose=True, history=None):
                 name, args = c.function.name, dict(c.function.arguments)
                 try: result = FUNCS[name](**args)
                 except Exception as e: result = {"error": str(e)}
-                collect(result, pools)
+                collect(grounding_view(name, result), pools)
                 trace.append({"tool": name, "args": args, "result": json.dumps(result, ensure_ascii=False)[:20000]})
                 if verbose: print(f"  -> {name}({json.dumps(args)[:140]})", flush=True)
                 msgs.append({"role": "tool", "tool_name": name, "content": json.dumps(result, ensure_ascii=False)[:12000]})
@@ -228,8 +252,9 @@ def ask(question, max_steps=24, max_fixes=2, verbose=True, history=None):
             msg = "VERIFICATION FAILED. "
             if bad: msg += f"These numbers in your answer do not match any tool result: {bad}. "
             if issues: msg += "Unsupported claims: " + " ".join(issues) + " "
-            msg += ("Retrieve the evidence with tools (get_financials, get_line_items, search_documents, calculate) or remove "
-                    "the claim. Then give the complete corrected answer.")
+            msg += ("Retrieve the evidence with tools (get_financials, get_line_items, search_documents, calculate, dupont) or "
+                    "remove the claim; a number you computed yourself must come from calculate with an expression written from "
+                    "retrieved figures. Then give the complete corrected answer.")
             msgs.append({"role": "user", "content": msg})
             continue
         if not reviewed and not final_step and (not (bad or issues) or fixes >= max_fixes):

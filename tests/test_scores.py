@@ -262,9 +262,10 @@ def test_real_no_nan_or_inf(real):
     for res in real.values():
         assert all(math.isfinite(v) for v in _numbers(res))
         json.dumps(res, allow_nan=False)
-        assert res["years"] == ["FY2022-23", "FY2023-24", "FY2024-25", "FY2025-26"]
-        for per_year in res["scores"].values():
-            for r in per_year.values():
+        assert res["years"] == ["FY2021-22", "FY2022-23", "FY2023-24", "FY2024-25", "FY2025-26"]
+        for name, per_year in res["scores"].items():
+            for fy, r in per_year.items():
+                if fy == "FY2021-22" and name != "altman_z": continue      # needs FY2020-21 (see test below)
                 assert r["score"] is not None, r.get("reason")
                 assert all(i["source"] for i in r["inputs"].values())
 
@@ -273,3 +274,29 @@ def test_real_year_pair_rule():
     for rec in r["inputs"].values():
         assert rec["basis"] == "as presented in the FY2025-26 report"
         assert rec["source"].startswith("FY2025-26 Annual Report")
+
+
+# ---------- FY2021-22 (only a comparative column of the FY2022-23 report) ----------
+@pytest.mark.parametrize("scope, z, zone", [("consolidated", 2.7197, "safe"), ("standalone", 3.2455, "safe")])
+def test_fy2021_22_altman_from_fy2022_23_report(scope, z, zone):
+    r = scores.altman_z("FY2021-22", scope)
+    assert r["score"] == pytest.approx(z, abs=1e-4) and r["interpretation"] == zone
+    assert r["x2_numerator"] == "retained_earnings" and r["missing"] == [] and r["fallbacks"] == []
+    doc = pymupdf.open(ROOT / "data/raw/TataSteel_FY2022-23.pdf")
+    pmap = {p["label"]: p["page"] for p in json.loads((ROOT / "data/interim/page_map_FY2022-23.json").read_text()) if p["label"]}
+    for rec in r["inputs"].values():               # every input is from the FY2022-23 report and printed on its page
+        assert rec["source"].startswith("FY2022-23 Annual Report"), rec
+        label = re.search(r"page (F\d+)", rec["source"]).group(1)
+        assert _inr(rec["value"]) in re.sub(r"\s+", " ", doc[pmap[label] - 1].get_text()), rec
+
+@pytest.mark.parametrize("scope", ["consolidated", "standalone"])
+def test_fy2021_22_two_year_scores_are_null_with_reason(scope):
+    for fn in (scores.piotroski_f, scores.beneish_m):
+        r = fn("FY2021-22", scope)
+        assert r["score"] is None and r["interpretation"] is None
+        assert r["reason"] == "needs FY2020-21, which is outside the four reports"
+
+def test_score_years_cover_fy2021_22():
+    assert scores.SCORE_YEARS == ["FY2021-22", "FY2022-23", "FY2023-24", "FY2024-25", "FY2025-26"]
+    res = scores.all_scores("consolidated")
+    assert res["years"] == scores.SCORE_YEARS and set(res["scores"]["altman_z"]) == set(scores.SCORE_YEARS)

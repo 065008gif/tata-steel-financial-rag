@@ -14,7 +14,10 @@ FIN_REP = json.loads((ROOT / "data/processed/financials_by_report.json").read_te
 _RE_PATH = ROOT / "data/processed/retained_earnings.json"
 RE = json.loads(_RE_PATH.read_text()) if _RE_PATH.exists() else {}
 YEARS = ["FY2021-22", "FY2022-23", "FY2023-24", "FY2024-25", "FY2025-26"]
-SCORE_YEARS = ["FY2022-23", "FY2023-24", "FY2024-25", "FY2025-26"]
+SCORE_YEARS = ["FY2021-22", "FY2022-23", "FY2023-24", "FY2024-25", "FY2025-26"]
+# FY2021-22 is only a comparative column of the FY2022-23 report: Altman (single year) works, but two-year scores
+# would need FY2020-21, which no report contains.
+NO_PRIOR_REASON = "needs FY2020-21, which is outside the four reports"
 
 GM_PROXY = ("Gross margin = (revenue_from_operations - cost_of_materials_consumed) / revenue_from_operations; excludes "
             "purchases of stock-in-trade and changes in inventories, which are not canonical items.")
@@ -143,6 +146,8 @@ def piotroski_f(fy, scope="consolidated"):
     t1 = prev_fy(fy)
     ins = _Inputs(scope, report=fy)
     basis = f"{fy} vs {t1}, both as presented in the {fy} report"
+    if fy == YEARS[0]:
+        return _result("piotroski_f", fy, scope, ins, f"{fy} vs FY2020-21 (not in the reports)", proxies, extra={"reason": NO_PRIOR_REASON})
     if t1 is None or fy not in FIN_REP:
         ins.missing.append(f"no {fy} report with {t1 or 'prior-year'} comparatives")
         return _result("piotroski_f", fy, scope, ins, basis, proxies, extra={"reason": "; ".join(ins.missing)})
@@ -213,6 +218,8 @@ def beneish_m(fy, scope="consolidated"):
     t1 = prev_fy(fy)
     ins = _Inputs(scope, report=fy)
     basis = f"{fy} vs {t1}, both as presented in the {fy} report"
+    if fy == YEARS[0]:
+        return _result("beneish_m", fy, scope, ins, f"{fy} vs FY2020-21 (not in the reports)", proxies, extra={"reason": NO_PRIOR_REASON})
     if t1 is None or fy not in FIN_REP:
         ins.missing.append(f"no {fy} report with {t1 or 'prior-year'} comparatives")
         return _result("beneish_m", fy, scope, ins, basis, proxies, extra={"reason": "; ".join(ins.missing)})
@@ -267,6 +274,6 @@ def _safe(fn, fy, scope):
                 "components": {}, "inputs": {}, "proxies": [], "fallbacks": [], "missing": [f"error: {e}"], "reason": f"error: {e}"}
 
 def all_scores(scope="consolidated", fiscal_years=None):
-    """Every score for every requested year (default FY2022-23..FY2025-26)."""
+    """Every score for every requested year (default FY2021-22..FY2025-26)."""
     fys = list(fiscal_years or SCORE_YEARS)
     return {"scope": scope, "years": fys, "scores": {n: {fy: _safe(fn, fy, scope) for fy in fys} for n, fn in SCORES.items()}}

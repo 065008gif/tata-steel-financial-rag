@@ -1,7 +1,7 @@
 # Composite financial scores
 
 Altman Z'' (book-equity), Piotroski F-score and Beneish M-score for Tata Steel, consolidated and standalone,
-FY2022-23 to FY2025-26 (FY2025-26 = year ended 31 March 2026). All inputs are canonical statement items in
+FY2021-22 to FY2025-26 (FY2025-26 = year ended 31 March 2026). FY2021-22 has Altman Z'' only (see below). All inputs are canonical statement items in
 INR crore from `data/processed/financials.json` and `data/processed/financials_by_report.json`, plus retained
 earnings from `data/processed/retained_earnings.json` (built by `src/ingest/retained_earnings.py`).
 
@@ -23,6 +23,25 @@ the score is `None` and a `reason` is given. The code never raises and never gue
   `financials.json` and records it in `fallbacks`. In practice, the only fallback is Piotroski's beginning-of-year
   assets for t-1 (total_assets of t-2), because report t does not contain year t-2. One exception: the standalone
   FY2024-25 report includes a third balance sheet, so it does contain t-2.
+
+## FY2021-22
+
+FY2021-22 appears in the reports only as the comparative column of the FY2022-23 report.
+- **Altman Z''** uses a single year, so it is computed. All six statement inputs come from the FY2022-23 report
+  (consolidated balance sheet F140-F141 and profit and loss F142; standalone F22-F23). Retained earnings come from the
+  "Other equity" note of the same report (consolidated F198: 55,647.79; standalone F73: 76,498.67). Every input was
+  checked against the text of its PDF page (`tests/test_scores.py::test_fy2021_22_altman_from_fy2022_23_report`).
+- **Piotroski F and Beneish M** compare year t with t-1 as presented in the report of year t. There is no FY2021-22 report,
+  and no report contains FY2020-21. So both return `score: null`, with `reason: "needs FY2020-21, which is outside the
+  four reports"`.
+
+| Scope | X1 | X2 | X3 | X4 | Z'' |
+|---|---|---|---|---|---|
+| Consolidated | 0.0065 | 0.1950 | 0.1951 | 0.6956 | **2.7197 (safe)** |
+| Standalone | -0.1008 | 0.3446 | 0.2112 | 1.2991 | **3.2455 (safe)** |
+
+FY2021-22 was a record-profit year (consolidated profit before tax 50,226.87), so X3 is more than twice its FY2022-23
+value (0.0852). This is why consolidated Z'' falls from the safe zone in FY2021-22 to the grey zone in FY2022-23.
 
 ## Altman Z'' (book-equity version)
 
@@ -150,6 +169,8 @@ Proxies:
 
 ### Consolidated
 
+FY2021-22: Altman Z'' 2.7197 (safe); Piotroski F and Beneish M null (need FY2020-21).
+
 | Score | FY2022-23 | FY2023-24 | FY2024-25 | FY2025-26 |
 |---|---|---|---|---|
 | Altman Z'' | 1.4781 (grey) | 0.4383 (distress) | 0.8666 (distress) | 0.9604 (distress) |
@@ -181,6 +202,8 @@ Proxies:
 | F: F9_asset_turnover_increased | 0 | 0 | 1 | 1 |
 
 ### Standalone
+
+FY2021-22: Altman Z'' 3.2455 (safe); Piotroski F and Beneish M null (need FY2020-21).
 
 | Score | FY2022-23 | FY2023-24 | FY2024-25 | FY2025-26 |
 |---|---|---|---|---|

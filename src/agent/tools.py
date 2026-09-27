@@ -294,13 +294,15 @@ def compute_metric(formula, name=None, scope="consolidated", fiscal_years=None, 
     def val(key, fy):
         v = FIN[sc][key]["values"].get(fy) if fy else None
         return None if v is None else v["value"]
+    inter = {}                     # avg()/prev() values per year, returned so the model never recomputes them
     def ev(n, fy):
         if isinstance(n, ast.Constant) and isinstance(n.value, (int, float)): return n.value
         if isinstance(n, ast.Name): return val(n.id, fy)
         if isinstance(n, ast.Call) and getattr(n.func, "id", "") in ("avg", "prev") and len(n.args) == 1:
             cur, pv = ev(n.args[0], fy), ev(n.args[0], prev_fy(fy))
-            if n.func.id == "prev": return pv
-            return None if cur is None or pv is None else (cur + pv) / 2
+            r = pv if n.func.id == "prev" else (None if cur is None or pv is None else (cur + pv) / 2)
+            if r is not None: inter.setdefault(fy, {})[ast.unparse(n)] = round(r, 4)
+            return r
         if isinstance(n, ast.BinOp):
             a, b = ev(n.left, fy), ev(n.right, fy)
             if a is None or b is None or (isinstance(n.op, ast.Div) and b == 0): return None
@@ -319,7 +321,8 @@ def compute_metric(formula, name=None, scope="consolidated", fiscal_years=None, 
     for fy in fys:
         cells = [_inr(val(k, fy)) if val(k, fy) is not None else "n/a" for k in names]
         if uses_prev:
-            cells.append(", ".join(f"{k}: {_inr(val(k, prev_fy(fy)))}" for k in names if val(k, prev_fy(fy)) is not None) or "n/a")
+            cells.append(", ".join([f"{k}: {_inr(val(k, prev_fy(fy)))}" for k in names if val(k, prev_fy(fy)) is not None]
+                                   + [f"{e} = {v:,.3f}".rstrip("0").rstrip(".") for e, v in inter.get(fy, {}).items()]) or "n/a")
         r = results[fy]
         cells.append("n/a" if r is None else f"{r:.{int(decimals)}f}")
         i = fys.index(fy)
@@ -333,8 +336,10 @@ def compute_metric(formula, name=None, scope="consolidated", fiscal_years=None, 
         for s_ in d.values():
             by_fy.setdefault(fy_, set()).add(s_.split(" Annual Report")[0] + " AR p. " + s_.split("page ")[-1])
     src_line = "Sources: " + "; ".join(f"{fy_}: {', '.join(sorted(v))}" for fy_, v in by_fy.items())
-    return {"metric": label, "formula": str(formula), "scope_used": sc, "table": "\n".join(rows) + "\n\n" + src_line,
-            "values": {fy: (None if r is None else round(r, int(decimals))) for fy, r in results.items()}, "sources": sources}
+    out = {"metric": label, "formula": str(formula), "scope_used": sc, "table": "\n".join(rows) + "\n\n" + src_line,
+           "values": {fy: (None if r is None else round(r, int(decimals))) for fy, r in results.items()}, "sources": sources}
+    if inter: out["intermediates"] = inter
+    return out
 
 FUNCS["compute_metric"] = compute_metric
 SCHEMAS.insert(1, {"type": "function", "function": {"name": "compute_metric",
@@ -586,3 +591,129 @@ SCHEMAS.append({"type": "function", "function": {"name": "get_segments",
         "fiscal_years": {"type": "array", "items": {"type": "string", "enum": SEG.YEARS}},
         "items": {"type": "array", "items": {"type": "string", "enum": SEG.ITEMS},
                   "description": "Default segment_revenue and segment_results"}}}}})
+
+
+# ---------- DuPont analysis of ROE: every intermediate value computed and returned here, never by the model ----------
+def _dupont_year(sc, fy, basis):
+    """3-step and 5-step DuPont for one year. basis 'average' (default; opening + closing / 2) or 'year_end'."""
+    val = lambda k, y: (FIN[sc].get(k, {}).get("values", {}).get(y) or {}).get("value") if y else None
+    src = lambda k, y: (FIN[sc].get(k, {}).get("values", {}).get(y) or {}).get("source")
+    t1 = YEARS[YEARS.index(fy) - 1] if fy in YEARS and YEARS.index(fy) > 0 else None
+    pat, pbt, fc, rev = (val(k, fy) for k in ("profit_for_the_year", "profit_before_tax", "finance_costs", "revenue_from_operations"))
+    ta, te, ta1, te1 = val("total_assets", fy), val("total_equity", fy), val("total_assets", t1), val("total_equity", t1)
+    if None in (pat, pbt, fc, rev, ta, te):
+        return {"fiscal_year": fy, "error": "inputs not available"}
+    if basis == "average":
+        if ta1 is None or te1 is None:
+            return {"fiscal_year": fy, "error": f"average basis needs {t1 or 'the prior year'} balances, which are not in the reports; use basis 'year_end'"}
+        a_ta, a_te = (ta + ta1) / 2, (te + te1) / 2
+    else:
+        a_ta, a_te = ta, te
+    ebit = pbt + fc
+    inputs = {"profit_for_the_year": pat, "profit_before_tax": pbt, "finance_costs": fc, "ebit (profit_before_tax + finance_costs)": round(ebit, 2),
+              "revenue_from_operations": rev, f"total_assets {fy}": ta, f"total_equity {fy}": te}
+    if basis == "average":
+        inputs.update({f"total_assets {t1}": ta1, f"total_equity {t1}": te1,
+                       "average_total_assets": round(a_ta, 3), "average_total_equity": round(a_te, 3)})
+    npm, at, em = pat / rev, rev / a_ta, a_ta / a_te
+    tb = pat / pbt if pbt > 0 else None                 # not meaningful for a pre-tax loss
+    ib = pbt / ebit if ebit > 0 and pbt > 0 else None
+    ebm = ebit / rev
+    roe = pat / a_te
+    out = {"fiscal_year": fy, "basis": basis, "inputs": inputs,
+           "three_step": {"net_profit_margin_pct": round(npm * 100, 4), "asset_turnover_x": round(at, 4),
+                          "equity_multiplier_x": round(em, 4), "roe_pct": round(roe * 100, 4),
+                          "product_check_pct": round(npm * at * em * 100, 4)},
+           "five_step": {"tax_burden_x": None if tb is None else round(tb, 4), "interest_burden_x": None if ib is None else round(ib, 4),
+                         "ebit_margin_pct": round(ebm * 100, 4), "asset_turnover_x": round(at, 4), "equity_multiplier_x": round(em, 4),
+                         "product_check_pct": None if tb is None or ib is None else round(tb * ib * ebm * at * em * 100, 4)},
+           "sources": sorted({s for k in ("profit_for_the_year", "profit_before_tax", "finance_costs", "revenue_from_operations",
+                                           "total_assets", "total_equity") for y in (fy, t1 if basis == "average" else None)
+                              if (s := src(k, y))})}
+    if tb is None: out["five_step"]["note"] = "tax and interest burden are not meaningful when profit before tax is a loss"
+    return out
+
+def dupont(fiscal_years=None, scope="consolidated", basis="average"):
+    """DuPont decomposition of ROE (3-step and 5-step) for each year, with every intermediate value (averages, EBIT,
+    each ratio, the product check), change of each component versus the prior year, and the composition of the change
+    in total equity - so no number in a DuPont answer has to be computed by hand."""
+    sc = norm_scope(scope) or "consolidated"
+    b = "year_end" if "end" in str(basis or "").lower() or "closing" in str(basis or "").lower() else "average"
+    fys = sorted({f for f in (norm_fy(y) for y in _list(fiscal_years)) if f in YEARS}, key=YEARS.index) or [YEARS[-1]]
+    res = {fy: _dupont_year(sc, fy, b) for fy in fys}
+    for fy in fys:                                        # change of each component vs the prior year
+        t1 = YEARS[YEARS.index(fy) - 1] if YEARS.index(fy) > 0 else None
+        prior = _dupont_year(sc, t1, b) if t1 else {"error": "no prior year"}
+        if "error" in res[fy] or "error" in prior: continue
+        res[fy]["prior_year"] = {"fiscal_year": t1, "three_step": prior["three_step"], "five_step": prior["five_step"]}
+        res[fy]["change_vs_prior_year"] = {k: round(v - prior["three_step"][k], 4) for k, v in res[fy]["three_step"].items()
+                                          if k != "product_check_pct"}
+        # composition of the change in total equity (same-report basis, as get_financials)
+        eq = get_financials(["equity_share_capital", "other_equity", "non_controlling_interests", "total_equity"], sc, [t1, fy])["items"]
+        tot = next((c["change"] for c in eq.get("total_equity", {}).get("yoy_changes", [])), None)
+        comp = {}
+        for k, v in eq.items():
+            c = next(iter(v["yoy_changes"]), None)
+            if not c: continue
+            comp[k] = {t1: c.get("prior_year_as_presented", v["values"][t1]["value"]), fy: c.get("year_as_presented", v["values"][fy]["value"]),
+                       "change": c["change"], "change_pct": c["change_pct"],
+                       "share_of_total_equity_change_pct": round(c["change"] / tot * 100, 2) if tot else None}
+        res[fy]["equity_change"] = comp
+    ok = [fy for fy in fys if "error" not in res[fy]]
+    pct = lambda v: "n/a" if v is None else f"{v:.2f}%"
+    xx = lambda v: "n/a" if v is None else f"{v:.4f}x"
+    head = "| DuPont component | " + " | ".join(ok) + " |\n|---|" + "---|" * len(ok) + "\n"
+    rows = [("Net profit margin (profit for the year / revenue)", lambda r: pct(r["three_step"]["net_profit_margin_pct"])),
+            (f"Asset turnover (revenue / {'average ' if b == 'average' else ''}total assets)", lambda r: xx(r["three_step"]["asset_turnover_x"])),
+            (f"Equity multiplier ({'average ' if b == 'average' else ''}total assets / {'average ' if b == 'average' else ''}total equity)", lambda r: xx(r["three_step"]["equity_multiplier_x"])),
+            (f"**ROE** (profit for the year / {'average ' if b == 'average' else ''}total equity)", lambda r: f"**{pct(r['three_step']['roe_pct'])}**"),
+            ("Tax burden (profit for the year / PBT)", lambda r: xx(r["five_step"]["tax_burden_x"])),
+            ("Interest burden (PBT / EBIT)", lambda r: xx(r["five_step"]["interest_burden_x"])),
+            ("EBIT margin (EBIT / revenue; EBIT = PBT + finance costs)", lambda r: pct(r["five_step"]["ebit_margin_pct"]))]
+    table = head + "".join(f"| {n} | " + " | ".join(f(res[fy]) for fy in ok) + " |\n" for n, f in rows)
+    inputs = head.replace("DuPont component", "Input (INR crore)")
+    for k in (res[ok[0]]["inputs"] if ok else {}):
+        inputs += f"| {k} | " + " | ".join(_inr(res[fy]["inputs"][k]) if k in res[fy]["inputs"] else "n/a" for fy in ok) + " |\n"
+    avg = [f"{fy}: average total assets {res[fy]['inputs']['average_total_assets']:,.3f}, average total equity "
+           f"{res[fy]['inputs']['average_total_equity']:,.3f}" for fy in ok if "average_total_assets" in res[fy]["inputs"]]
+    chg = ""
+    for fy in ok:
+        if "change_vs_prior_year" not in res[fy]: continue
+        p = res[fy]["prior_year"]
+        chg += (f"\n| Component | {p['fiscal_year']} | {fy} | Change |\n|---|---|---|---|\n"
+                + "".join(f"| {k} | {p['three_step'][k]:.2f} | {res[fy]['three_step'][k]:.2f} | {v:+.2f} |\n"
+                          if k.endswith("pct") else f"| {k} | {p['three_step'][k]:.4f} | {res[fy]['three_step'][k]:.4f} | {v:+.4f} |\n"
+                          for k, v in res[fy]["change_vs_prior_year"].items()))
+        if res[fy].get("equity_change"):
+            t1 = p["fiscal_year"]
+            sgn = lambda v: "n/a" if v is None else f"{v:+.2f}%"
+            chg += (f"\n| Change in equity (INR crore) | {t1} | {fy} | Change | % change | Share of total equity change |\n|---|---|---|---|---|---|\n"
+                    + "".join(f"| {k} | {_inr(c[t1])} | {_inr(c[fy])} | {'+' if c['change'] > 0 else ''}{_inr(c['change'])} | "
+                              f"{sgn(c['change_pct'])} | {pct(c['share_of_total_equity_change_pct'])} |\n"
+                              for k, c in res[fy]["equity_change"].items()))
+    srcs = sorted({s for fy in ok for s in res[fy]["sources"]})
+    by = {}
+    for s_ in srcs: by.setdefault(s_.split(" Annual Report")[0], set()).add(s_.split("page ")[-1])
+    sources = "Sources: " + "; ".join(f"{r} AR p. {', '.join(sorted(p))}" for r, p in sorted(by.items()))
+    return {"scope_used": sc, "basis": b, "years": fys, "unit": "INR crore; margins and ROE in %, multiples in x",
+            "definitions": {"roe": f"profit_for_the_year / {'average (opening + closing) / 2' if b == 'average' else 'year-end'} total_equity",
+                            "three_step": "ROE = net profit margin x asset turnover x equity multiplier",
+                            "five_step": "ROE = tax burden x interest burden x EBIT margin x asset turnover x equity multiplier; "
+                                         "EBIT = profit_before_tax + finance_costs (PBT is after exceptional items)"},
+            "results": res, "table": table, "inputs_table": inputs, "averages": avg, "changes_table": chg.strip(),
+            "sources": sources,
+            "note": "Quote these values exactly (copy the tables); every intermediate value is here. Profit for the year includes "
+                    "non-controlling interests, matching total equity (which includes them). other_equity is NOT retained earnings: it "
+                    "also holds the securities premium, general reserve and other reserves."}
+
+FUNCS["dupont"] = dupont
+SCHEMAS.append({"type": "function", "function": {"name": "dupont",
+    "description": "DuPont analysis of ROE, computed exactly from the verified statements: 3-step (net profit margin x asset "
+                   "turnover x equity multiplier) and 5-step (tax burden x interest burden x EBIT margin x asset turnover x "
+                   "equity multiplier), with every intermediate value (average total assets and equity, EBIT, each ratio, the "
+                   "product check), the change of each component versus the prior year and the composition of the change in "
+                   "total equity. Ready-to-paste tables and sources. Use for ANY DuPont or ROE-decomposition question.",
+    "parameters": {"type": "object", "properties": {
+        "fiscal_years": {"type": "array", "items": {"type": "string", "enum": YEARS}, "description": "Default the latest year"},
+        "scope": {"type": "string", "enum": ["consolidated", "standalone"]},
+        "basis": {"type": "string", "enum": ["average", "year_end"], "description": "Default average (opening + closing) / 2"}}}}})
