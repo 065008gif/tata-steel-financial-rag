@@ -1,17 +1,17 @@
-# Evaluation notes — final run (eval/results/run_20260927_0136.json)
+# Evaluation notes — final run (eval/results/run_20260927_2014.json)
 
-## Automatic scores (30 questions)
+## Automatic scores (32 questions, incl. 2 follow-ups using conversation history)
 | Tier | Result |
 |---|---|
 | 1. Filtered retrieval (search only, correct filters) | Hit Rate@4 = 1.00, MRR = 1.00 |
-| 2a. Numeric accuracy | 22/22 numeric questions fully correct; 57/57 expected numbers found |
-| 2b. Source pages retrieved / cited | 24/24 questions retrieved the expected pages; 48/53 expected pages cited |
-| 2c. Abstention | 30/30 (all 3 out-of-scope traps refused; no valid question wrongly refused) |
-| 2d. Grounding (automatic numeric verification) | 30/30 answers fully grounded |
-| Average latency / tool calls | 11 s / 2.9 |
+| 2a. Numeric accuracy | 24/24 numeric questions fully correct; 60/60 expected numbers found |
+| 2b. Source pages retrieved / cited | 26/26 questions retrieved the expected pages; 55/56 expected pages cited |
+| 2c. Abstention | 32/32 (all 3 out-of-scope traps refused; no valid question wrongly refused) |
+| 2d. Grounding (automatic numeric verification; numbers typed into the calculator are not trusted) | 31/32 answers fully grounded |
+| Average latency / tool calls | 10 s / 2.6 |
 
 Answer key: every expected number was derived from the verified statement data, and all 114 raw input figures were
-cross-checked against the text of their cited PDF pages (114/114 found).
+cross-checked against the text of their cited PDF pages (118/118 found).
 
 ## Hand-graded (qualitative) questions
 | ID | Grade | Notes |
@@ -44,3 +44,11 @@ cross-checked against the text of their cited PDF pages (114/114 found).
 - Narrative synthesis across long sections (risk evolution, management explanations) is the weakest area (G1, G2).
 - EBITDA margin uses the stated definition (PBEIT + finance costs + D&A - other income); Tata Steel's segment EBITDA
   excludes finance income and JV share instead (FY26: 14.96% vs 15.01%).
+
+## Stricter grounding (task 05) and what it caught
+Numbers the model typed into a calculate expression used to count as verified. From task 05 only tool results count.
+The first run under this rule dropped to 25/32 fully grounded, which exposed: (1) a real error in B3 (EBITDA margin
+14.07% instead of 14.96%: profit before exceptional items rebuilt from PBT with the sign of exceptional items reversed);
+(2) year-on-year differences computed in the model's head (B1); (3) a checker artefact (the constant 100 in "x 100").
+Fixes: margins must use the reported subtotal via compute_metric; differences from get_financials' change columns;
+formula constants ignored. Final run: 31/32 fully grounded, 24/24 numeric, 60/60 numbers.

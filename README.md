@@ -8,17 +8,17 @@ for every figure, verifying every number against the source data, and refusing q
 
 **Team:** Backend — Akshit Kansal · Frontend — teammate (see `frontend/`)
 
-## Results (final evaluation, 30 questions — details in `eval/EVALUATION_NOTES.md`)
+## Results (final evaluation, 32 questions — details in `eval/EVALUATION_NOTES.md`)
 
 | Tier | Result |
 |---|---|
 | Filtered retrieval (search only) | Hit Rate@4 = 1.00, MRR = 1.00 |
-| Numeric accuracy | 22/22 numeric questions fully correct; 57/57 expected numbers found |
-| Source pages retrieved / cited | 24/24 questions / 48 of 53 expected pages cited |
-| Abstention (forecasts, other companies, years not covered) | 30/30 |
-| Automatic numeric grounding | 30/30 answers fully grounded |
-| Ground-truth check | all 114 answer-key input figures found printed on their cited PDF pages |
-| Average latency / tool calls | 11 s / 2.9 |
+| Numeric accuracy | 24/24 numeric questions fully correct; 60/60 expected numbers found |
+| Source pages retrieved / cited | 26/26 questions / 55 of 56 expected pages cited |
+| Abstention (forecasts, other companies, years not covered) | 32/32 |
+| Automatic numeric grounding (calculator inputs not trusted) | 31/32 answers fully grounded |
+| Ground-truth check | all 118 answer-key input figures found printed on their cited PDF pages |
+| Average latency / tool calls | 10 s / 2.6 |
 
 ## Architecture
 
