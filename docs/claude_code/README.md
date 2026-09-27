@@ -32,3 +32,14 @@ correctly to the next year's opening balance). Z'' for FY2025-26 (consolidated) 
 (X2 = 0.131699).
 **Impact:** consolidated Altman Z'' moves from the grey zone to the **distress** zone for FY2023-24 (0.4383), FY2024-25
 (0.8666) and FY2025-26 (0.9604); standalone FY2024-25 moves from safe to grey. See `docs/SCORES.md`.
+
+## Task 03 — segment results for all years
+**Brief:** `TASK_03_segments.md`. **Claude Code result (6 min 58 s):** `src/ingest/segments.py` places every number in its
+column by position on the page (cells can be blank or "-", so reading order is unreliable), for all four reports and
+both years of each. Checks: value on its page 293/293; segments + eliminations = total 31/31; total external revenue =
+consolidated revenue from operations 8/8; external + inter-segment = segment revenue 74/74 (a check it added). It kept
+segment changes separate (Europe split into Netherlands and UK; Long Products merged into India), flagged restated values,
+and left one blank cell out rather than guessing. 60 tests pass. New `get_segments` tool and `GET /api/segments`.
+**Independent verification:** four values located directly on pages of four different reports (e.g. India FY2021-22
+51,456.30; Europe FY2023-24 (7,612.44)); the combined latest-report view reconciles to the printed total for all five years;
+tests re-run (60/60); the live endpoint checked after a container rebuild.

@@ -135,9 +135,23 @@ def scores(scope: str = "consolidated"):
     sc = "standalone" if scope == "standalone" else "consolidated"
     return all_scores(sc, SCORE_YEARS)
 
+@app.get("/api/segments")
+def segments():
+    from segments import get_segments as segment_data
+    r = segment_data()
+    def row(s):
+        return {"key": s["key"], "name": s["name"],
+                "values": {fy: {i: c["value"] for i, c in v.items()} for fy, v in s["values"].items()},
+                "sources": {fy: {k: next(iter(v.values()))[k] for k in ("report", "page_label", "pdf_page")} for fy, v in s["values"].items()},
+                "restated": {fy: [i for i, c in v.items() if c["restated"]] for fy, v in s["values"].items() if any(c["restated"] for c in v.values())}}
+    return {"unit": r["unit"], "years": r["years"], "items": r["items"], "note": r["note"],
+            "segments": [row(s) for s in r["segments"]], "eliminations": row(r["eliminations"]), "totals": row(r["totals"])}
+
 @app.get("/api/evaluation")
 def evaluation():
     runs = sorted((ROOT / "eval/results").glob("run_*.json"))
+    full = [r for r in runs if len(json.loads(r.read_text()).get("records", [])) >= 25]   # ignore partial test runs
+    runs = full or runs
     if not runs: return {"available": False}
     data, st = json.loads(runs[-1].read_text()), runs[-1].stem[4:]
     keep = ("id", "category", "question", "numeric", "citation", "mentions", "abstention_ok", "grounded", "seconds")

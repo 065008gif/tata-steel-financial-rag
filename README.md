@@ -65,6 +65,11 @@ docker compose logs tunnel | grep trycloudflare.com # the public URL
 `localhost:6333`, then `uvicorn main:app --app-dir src/api --port 8000`.
 
 ### Rebuilding the data from scratch
+**Offline model loading:** the backend runs with `HF_HUB_OFFLINE=1`, so it never depends on the network at start-up. fastembed
+0.8.1's bm25 model lists `tamil.txt` and `mock.file` as required, but the published `Qdrant/bm25` repository does not contain
+them, so an offline load fails. After the first (online) model download, create them as empty files in the bm25 snapshot
+folder (`.cache/fastembed/models--Qdrant--bm25/snapshots/<id>/`); the index uses English stopwords only, so they are never read.
+
 The ingestion stages need the full environment (Docling, PyMuPDF, PyTorch CPU) in addition to `requirements-api.txt`:
 bash scripts/download_reports.sh
 python src/ingest/page_map.py

@@ -527,3 +527,62 @@ SCHEMAS.append({"type": "function", "function": {"name": "compute_scores",
         "fiscal_years": {"type": "array", "items": {"type": "string", "enum": S.SCORE_YEARS}},
         "scope": {"type": "string", "enum": ["consolidated", "standalone"]}},
         "required": ["score"]}}})
+
+
+# ---------- segment revenue and segment results (EBITDA) per year, from the segment reporting note ----------
+import segments as SEG
+
+def norm_segment_item(x):
+    x = str(x or "").lower()
+    if any(w in x for w in ("result", "ebitda", "profit", "earning")): return "segment_results"
+    if "inter" in x: return "inter_segment_revenue"
+    if "extern" in x: return "external_revenue"
+    if "revenue" in x or "sales" in x or "turnover" in x: return "segment_revenue"
+    return None
+
+def _segment_source(rep, label):
+    return f"{rep} Annual Report, consolidated segment reporting note, page {label}"
+
+def get_segments(fiscal_years=None, items=None):
+    """Segment revenue and segment results (segment EBITDA) for every segment and year, each year from the latest
+    report presenting it, with source page per value, restated flags and a ready-to-paste markdown table."""
+    fys = sorted({f for f in (norm_fy(y) for y in _list(fiscal_years)) if f in SEG.YEARS}, key=SEG.YEARS.index) or SEG.YEARS
+    its = [i for i in SEG.ITEMS if i in {norm_segment_item(x) for x in _list(items)}] or ["segment_revenue", "segment_results"]
+    r = SEG.get_segments(fys, its)
+    rows = r["segments"] + [x for x in (r["eliminations"], r["totals"]) if x]
+    tables, pages = [], {}
+    for it in its:
+        t = [f"| {SEG.ITEM_LABELS[it]} (INR crore) | " + " | ".join(fys) + " |", "|---|" + "---|" * len(fys)]
+        for row in rows:
+            cells = []
+            for fy in fys:
+                c = row["values"].get(fy, {}).get(it)
+                if c is None: cells.append("-"); continue
+                cells.append(_inr(c["value"]) + ("*" if c["restated"] else ""))
+                pages.setdefault(c["report"], set()).add(c["page_label"])
+            name = f"**{row['name']}**" if row["key"] == "total" else row["name"]
+            t.append(f"| {name} | " + " | ".join(cells) + " |")
+        tables.append("\n".join(t))
+    sources = "Sources: " + "; ".join(_segment_source(rep, ", ".join(sorted(p))) for rep, p in sorted(pages.items()))
+    notes = [f"{x['name']} {x['fiscal_year']}: {', '.join(f'{k} {_inr(v)}' for k, v in x['values'].items())} as printed in the "
+             f"{x['report']} report (page {x['page_label']}); not presented in the later {x['latest_report']} report, which re-segmented that year"
+             for x in r["superseded"]]
+    table = ("\n\n".join(tables) + "\n\nSegment results = segment EBITDA: results before exceptional items, interest, tax and "
+             "depreciation. Each year from the latest report presenting it; * = restated versus an earlier report; "
+             "- = segment not reported for that year.\n\n" + sources)
+    return {"unit": "INR crore", "years": fys, "items": its, "year_convention": "FY2025-26 = year ended 31 March 2026.",
+            "definition": r["note"], "segments": r["segments"], "eliminations": r["eliminations"], "totals": r["totals"],
+            "superseded": r["superseded"], "table": table, "sources": sources, "notes": notes}
+
+FUNCS["get_segments"] = get_segments
+SCHEMAS.append({"type": "function", "function": {"name": "get_segments",
+    "description": "Exact, page-verified segment figures from the consolidated segment reporting note for every segment "
+                   "(Tata Steel India, Neelachal Ispat Nigam, Tata Steel Netherlands, Tata Steel UK, Tata Steel Europe before "
+                   "its split, other Indian operations, South-East Asia, rest of the world, ...), eliminations and totals, "
+                   "FY2021-22 to FY2025-26. Segment \"results\" are segment EBITDA: results before exceptional items, interest, "
+                   "tax and depreciation. Returns values with source pages, restated flags and a ready-to-paste table. "
+                   "Use for any question on segment revenue, segment results/EBITDA or geographic performance.",
+    "parameters": {"type": "object", "properties": {
+        "fiscal_years": {"type": "array", "items": {"type": "string", "enum": SEG.YEARS}},
+        "items": {"type": "array", "items": {"type": "string", "enum": SEG.ITEMS},
+                  "description": "Default segment_revenue and segment_results"}}}}})
