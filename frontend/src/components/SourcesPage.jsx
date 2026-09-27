@@ -1,5 +1,12 @@
 import { getReports } from "../api.js";
-import { Icon, LoadError, SectionHeading, useApi } from "./ui.jsx";
+import {
+  COMPARATIVE_NOTE,
+  COVERAGE_TEXT,
+  Icon,
+  LoadError,
+  SectionHeading,
+  useApi,
+} from "./ui.jsx";
 
 /* =========================================================
    SOURCES & METHODOLOGY
@@ -80,7 +87,7 @@ export default function SourcesPage({ setActivePage }) {
         <SectionHeading
           eyebrow="THE REPORTS"
           title="Four Tata Steel annual reports"
-          description="Integrated Reports & Annual Accounts, FY2022-23 to FY2025-26. Each report also presents the prior year, so figures cover FY2021-22 to FY2025-26."
+          description={`Integrated Reports & Annual Accounts. ${COVERAGE_TEXT}`}
         />
 
         {reports.error && (
@@ -97,15 +104,39 @@ export default function SourcesPage({ setActivePage }) {
               </div>
             ))}
 
+          {reports.data && (() => {
+            const comparative = reports.data.find(
+              (report) => report.fiscal_year === "FY2022-23",
+            );
+
+            return comparative ? (
+              <div className="dashboard-panel report-card report-card-comparative">
+                <span className="statement-icon">
+                  <Icon name="layers" size={18} />
+                </span>
+
+                <div>
+                  <span className="report-year" title={COMPARATIVE_NOTE}>
+                    FY2021-22
+                  </span>
+                  <strong>
+                    FY2021-22: figures from the comparative column of the
+                    FY2022-23 report
+                  </strong>
+                  <small>
+                    <a href={comparative.pdf_url} target="_blank" rel="noopener noreferrer">
+                      Open the FY2022-23 report
+                      <Icon name="external" size={12} />
+                    </a>
+                  </small>
+                </div>
+              </div>
+            ) : null;
+          })()}
+
           {reports.data?.map((report) => (
 
-            <a
-              className="dashboard-panel report-card"
-              key={report.fiscal_year}
-              href={report.pdf_url}
-              target="_blank"
-              rel="noopener noreferrer"
-            >
+            <div className="dashboard-panel report-card" key={report.fiscal_year}>
 
               <span className="statement-icon">
                 <Icon name="file" size={18} />
@@ -113,15 +144,45 @@ export default function SourcesPage({ setActivePage }) {
 
               <div>
                 <span className="report-year">{report.fiscal_year}</span>
-                <strong>{report.title}</strong>
+                <a
+                  className="report-card-link"
+                  href={report.pdf_url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  title="Open the report PDF (local copy)"
+                >
+                  <strong>{report.title}</strong>
+                </a>
                 <small>
-                  {report.pages ? `${report.pages} pages · ` : ""}PDF on tatasteel.com
+                  {report.pages ? `${report.pages} pages · ` : ""}PDF (local copy)
+                  {report.official_url && (
+                    <>
+                      {" · "}
+                      <a
+                        className="official-link"
+                        href={report.official_url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        title="The official copy on tatasteel.com"
+                      >
+                        tatasteel.com
+                      </a>
+                    </>
+                  )}
                 </small>
               </div>
 
-              <Icon name="external" size={16} />
+              <a
+                className="report-card-open"
+                href={report.pdf_url}
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label={`Open the ${report.fiscal_year} report PDF`}
+              >
+                <Icon name="external" size={16} />
+              </a>
 
-            </a>
+            </div>
 
           ))}
 
@@ -189,7 +250,9 @@ export default function SourcesPage({ setActivePage }) {
             <p>
               Altman Z'' (book-equity variant), Piotroski F and Beneish M are
               computed in code from the verified statements, consolidated and
-              standalone, FY2022-23 to FY2025-26. Altman X2 uses the actual
+              standalone, FY2021-22 to FY2025-26 (FY2021-22 from the
+              FY2022-23 report's comparative column; Piotroski F and Beneish
+              M need FY2020-21, so they start in FY2022-23). Altman X2 uses the actual
               retained earnings from each report's "Other equity" note, each
               value verified on its page. Disclosed proxies: X4 uses book equity
               instead of market value (not in the reports) and EBIT is taken as

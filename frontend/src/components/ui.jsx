@@ -154,7 +154,7 @@ export function SectionHeading({ eyebrow, title, description, action }) {
 const MINUS = "−";
 
 export function formatNumber(value, decimals = 2) {
-  if (value == null || Number.isNaN(value)) return "—";
+  if (value == null || Number.isNaN(value)) return "n/a";
   const text = Math.abs(value).toLocaleString("en-IN", {
     minimumFractionDigits: decimals,
     maximumFractionDigits: decimals,
@@ -169,13 +169,13 @@ export function formatCrore(value) {
 
 /** A percentage change exactly as the API gives it, e.g. +6.22% */
 export function formatChangePct(value) {
-  if (value == null) return "—";
+  if (value == null) return "n/a";
   return `${value > 0 ? "+" : ""}${formatNumber(value, 2)}%`;
 }
 
 /** A metric from /api/metrics with its unit and the API's decimals. */
 export function formatMetric(value, unit, decimals = 2) {
-  if (value == null) return "—";
+  if (value == null) return "n/a";
   if (unit === "x") return `${formatNumber(value, decimals)}x`;
   if (unit === "%") return `${formatNumber(value, decimals)}%`;
   return formatNumber(value, decimals);
@@ -214,20 +214,58 @@ export function RestatedMark({
   );
 }
 
-/** A value, or "—" with a "Not reported" tooltip when it is null. */
-export function Value({ value, format = formatCrore, restated = false, restatedNote }) {
-  if (value == null) {
-    return (
-      <span className="value-missing" title="Not reported">
-        —
-      </span>
-    );
-  }
+/** A value, or "n/a" with a tooltip (default "Not reported") when it is null. */
+export function Value({
+  value,
+  format = formatCrore,
+  restated = false,
+  restatedNote,
+  missingNote = "Not reported",
+}) {
+  if (value == null) return <Missing note={missingNote} />;
 
   return (
     <>
       {format(value)}
       {restated && <RestatedMark note={restatedNote} />}
+    </>
+  );
+}
+
+/** "n/a" with a tooltip explaining why the value is missing. */
+export function Missing({ note = "Not reported" }) {
+  return (
+    <span className="value-missing" title={note} aria-label={`n/a: ${note}`}>
+      n/a
+    </span>
+  );
+}
+
+/* ---------------------------------------------------------
+   Years and coverage (standard wording)
+   --------------------------------------------------------- */
+
+export const COMPARATIVE_YEAR = "FY2021-22";
+export const COMPARATIVE_NOTE = "From the FY2022-23 report's comparative column";
+export const NEEDS_PRIOR_YEAR_NOTE = "Needs FY2020-21, which is outside the four reports";
+export const COVERAGE_TEXT =
+  "Figures cover FY2021-22 to FY2025-26, taken from Tata Steel's four annual reports (FY2022-23 to FY2025-26; FY2021-22 from the comparative column of the FY2022-23 report).";
+
+/** Small info marker for FY2021-22 (comparative-column year). */
+export function ComparativeMark() {
+  return (
+    <sup className="comparative-mark" title={COMPARATIVE_NOTE} aria-label={COMPARATIVE_NOTE}>
+      i
+    </sup>
+  );
+}
+
+/** A fiscal-year label, with the info marker when it is FY2021-22. */
+export function YearLabel({ year }) {
+  return (
+    <>
+      {year}
+      {year === COMPARATIVE_YEAR && <ComparativeMark />}
     </>
   );
 }
@@ -239,7 +277,7 @@ export function Value({ value, format = formatCrore, restated = false, restatedN
 
 let sparklineCount = 0;
 
-export function Sparkline({ values, width = 64, height = 20, label }) {
+export function Sparkline({ values, width = 64, height = 20, label, highlightIndex }) {
   const [gradientId] = useState(() => `sparkStroke${++sparklineCount}`);
   const present = values
     .map((value, index) => ({ value, index }))
@@ -258,7 +296,9 @@ export function Sparkline({ values, width = 64, height = 20, label }) {
     const y = 2 + (1 - (point.value - min) / span) * (height - 4);
     return [x, y];
   });
-  const last = points[points.length - 1];
+  // Mark the selected year when given, otherwise the latest point.
+  const markIndex = present.findIndex((point) => point.index === highlightIndex);
+  const last = points[markIndex >= 0 ? markIndex : points.length - 1];
 
   return (
     <svg
@@ -285,7 +325,12 @@ export function Sparkline({ values, width = 64, height = 20, label }) {
         strokeLinejoin="round"
       />
 
-      <circle cx={last[0]} cy={last[1]} r="2.2" />
+      <circle
+        cx={last[0]}
+        cy={last[1]}
+        r={highlightIndex != null ? 3 : 2.2}
+        className={highlightIndex != null ? "sparkline-selected" : undefined}
+      />
     </svg>
   );
 }

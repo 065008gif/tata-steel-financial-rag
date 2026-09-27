@@ -76,6 +76,10 @@ RULES
     \\frac. Write any formula in plain text, e.g. "(29,997.19 + 51,576.73) / 92,432.74 = 0.88x". Never mention internal
     tool names (get_financials, calculate, compute_metric, search_documents...); say "computed from the reported figures".
 24. Never write approximations for figures: no "≈", "~", "around", "about", "roughly" or "approximately" next to a number.
+    Margins, ratios and growth across years: use compute_metric with the REPORTED line items (e.g. the reported profit
+    before exceptional items and tax); never rebuild a reported subtotal from other lines (e.g. profit before tax and
+    exceptional items), since signs are easy to get wrong. Differences between years: use the change columns that
+    get_financials returns. Show percentages with 2 decimals.
     State the exact computed value as the tool returned it (e.g. 2,810.36 crore, 34.81%).
 25. DuPont / ROE decomposition questions: call dupont (default average-equity basis, matching the ROE definition below)
     and paste its tables. It returns every intermediate value (average assets and equity, EBIT, each ratio, the product
@@ -94,7 +98,7 @@ Answer in clear prose with a small table where it helps."""
 
 # ---------- numeric grounding ----------
 IGNORE = re.compile(
-    r"FY\s?'?\d{2,4}(?:\s?[-–‑—]\s?\d{2,4})?|\b20\d{2}\s?[-–‑—]\s?\d{2,4}\b|\bF\d{1,3}\b|(?:pp?\.|pages?|PDF\s?p(?:age)?\.?)\s?\d+(?:\s?[-–‑—]\s?F?\d+)?|"
+    r"(?<=[×x*/÷])\s?100\b|\b100\s?(?=[×x*])|FY\s?'?\d{2,4}(?:\s?[-–‑—]\s?\d{2,4})?|\b20\d{2}\s?[-–‑—]\s?\d{2,4}\b|\bF\d{1,3}\b|(?:pp?\.|pages?|PDF\s?p(?:age)?\.?)\s?\d+(?:\s?[-–‑—]\s?F?\d+)?|"
     r"Note\s+\d+[A-Za-z]?(?:\([a-z]\))?|\b(?-i:ISA|Ind AS|SA|AS)\s?\d+|\b(?:Section|Schedule)\s+\d+|\b(?:19|20)\d{2}\b|\d+(?:st|nd|rd|th)\b",
     re.I)
 

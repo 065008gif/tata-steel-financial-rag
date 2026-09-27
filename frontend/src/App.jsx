@@ -1,16 +1,25 @@
 import { useEffect, useState } from "react";
 import "./App.css";
-import { getFinancials, getHealth, getMetrics, getScores } from "./api.js";
-import AskPage, { suggestedQuestions } from "./components/AskPage.jsx";
+import {
+  getCompany,
+  getFinancials,
+  getHealth,
+  getMetrics,
+  getScores,
+} from "./api.js";
+import AskPage, { DUPONT_QUESTION, PROFIT_TREND_QUESTION } from "./components/AskPage.jsx";
 import DashboardPage from "./components/DashboardPage.jsx";
 import EvaluationPage from "./components/EvaluationPage.jsx";
 import SourcesPage from "./components/SourcesPage.jsx";
 import {
+  COVERAGE_TEXT,
   Icon,
+  LoadError,
   RestatedMark,
   SectionHeading,
   Value,
   formatChangePct,
+  formatCrore,
   formatNumber,
   sentenceCase,
   useApi,
@@ -204,7 +213,7 @@ function HomePage({ setActivePage, onAskEdith }) {
           </h1>
 
           <p className="hero-description">
-            Meet Edith — a financial research assistant built around Tata
+            Meet Edith, a financial research assistant built around Tata
             Steel's reports. Ask questions about performance, disclosures and
             financial trends, then trace the answer back to its source.
           </p>
@@ -229,8 +238,7 @@ function HomePage({ setActivePage, onAskEdith }) {
           <div className="hero-note">
             <span className="note-dot" />
             <span>
-              Live · Figures from Tata Steel's four annual reports
-              (FY2022-23 to FY2025-26), each linked to its source page.
+              Live · {COVERAGE_TEXT}
             </span>
           </div>
 
@@ -702,7 +710,10 @@ const GLANCE_ITEMS = [
   "net_cash_from_operating",
 ];
 
-const TRY_ASKING = [0, 2, 4, 6, 7, 10].map((index) => suggestedQuestions[index]);
+// The four report years (each has a prior year to compare with).
+const GLANCE_YEARS = ["FY2022-23", "FY2023-24", "FY2024-25", "FY2025-26"];
+
+const TRY_ASKING = [DUPONT_QUESTION, PROFIT_TREND_QUESTION];
 
 function GlanceTile({ label, icon, loading, value, detail, source, tone }) {
   return (
@@ -734,7 +745,94 @@ function GlanceTile({ label, icon, loading, value, detail, source, tone }) {
   );
 }
 
+/* "About Tata Steel": facts from /api/company, each with its page link. */
+function AboutTataSteel() {
+  const company = useApi(getCompany, "company");
+
+  if (company.error) {
+    return <LoadError error={company.error} onRetry={company.retry} compact />;
+  }
+
+  return (
+    <div className="about-card">
+      <div className="about-card-heading">
+        <span className="statement-icon">
+          <Icon name="book" size={18} />
+        </span>
+
+        <div>
+          <h3>{company.data?.title || "About Tata Steel"}</h3>
+          {company.data?.source && <small>{company.data.source}</small>}
+        </div>
+      </div>
+
+      {company.loading ? (
+        <>
+          <div className="evidence-skeleton wide" />
+          <div className="evidence-skeleton" />
+        </>
+      ) : (
+        <ul className="about-facts">
+          {company.data.facts.map((fact) => (
+            <li key={fact.text}>
+              <Icon name="check" size={16} />
+              <span>
+                {fact.text}{" "}
+                <a
+                  className="fact-page-link"
+                  href={fact.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  title={`Open the ${fact.report} report at page ${fact.page_label}`}
+                >
+                  {fact.report}, p. {fact.page_label}
+                  <Icon name="external" size={12} />
+                </a>
+              </span>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}
+
+/* Short factual bullets, templated from API values only. */
+function GlanceBullets({ year, revenue, profit, netDebt, altman, piotroski }) {
+  const money = (value) => `₹ ${formatCrore(value)} crore`;
+  const change = (entry) =>
+    entry ? `, ${formatChangePct(entry.change_pct)} versus ${entry.from}` : "";
+
+  const bullets = [
+    revenue.point?.value != null &&
+      `Revenue from operations was ${money(revenue.point.value)}${change(revenue.change)}.`,
+    profit.point?.value != null &&
+      `Profit for the year was ${money(profit.point.value)}${change(profit.change)}.`,
+    netDebt != null && `Net debt was ${money(netDebt)}.`,
+    altman?.score != null &&
+      `Altman Z'' was ${formatNumber(altman.score, 4)}, in the ${altman.interpretation} zone.`,
+    piotroski?.score != null &&
+      `Piotroski F was ${piotroski.score}/9, rated ${piotroski.interpretation}.`,
+  ].filter(Boolean);
+
+  if (bullets.length === 0) return null;
+
+  return (
+    <div className="glance-bullets">
+      <h3>How its financials look in {year}</h3>
+
+      <ul>
+        {bullets.map((text) => (
+          <li key={text}>{text}</li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
 function GlanceSection({ setActivePage, onAskEdith }) {
+  const [year, setYear] = useState(GLANCE_YEARS[GLANCE_YEARS.length - 1]);
+
   const financials = useApi(
     () => getFinancials(GLANCE_ITEMS, "consolidated"),
     "financials-consolidated",
@@ -742,14 +840,16 @@ function GlanceSection({ setActivePage, onAskEdith }) {
   const metrics = useApi(() => getMetrics("consolidated"), "metrics-consolidated");
   const scores = useApi(() => getScores("consolidated"), "scores-consolidated");
 
-  const years = financials.data?.years || metrics.data?.years;
-  const year = years?.[years.length - 1] || "FY2025-26";
-  const scoreYear = scores.data?.years[scores.data.years.length - 1];
+  function itemData(key) {
+    const item = financials.data?.items[key];
+    return {
+      point: item?.values[year],
+      change: item?.yoy_changes.find((entry) => entry.to === year),
+    };
+  }
 
   function itemTile(key, label, icon) {
-    const item = financials.data?.items[key];
-    const point = item?.values[year];
-    const change = item?.yoy_changes.find((entry) => entry.to === year);
+    const { point, change } = itemData(key);
 
     return (
       <GlanceTile
@@ -779,11 +879,12 @@ function GlanceSection({ setActivePage, onAskEdith }) {
   }
 
   const netDebt = metrics.data?.metrics.find((metric) => metric.key === "net_debt");
-  const altman = scores.data?.scores.altman_z?.[scoreYear];
-  const piotroski = scores.data?.scores.piotroski_f?.[scoreYear];
+  const altman = scores.data?.scores.altman_z?.[year];
+  const piotroski = scores.data?.scores.piotroski_f?.[year];
   const zoneTone = (label) =>
     ({ safe: "safe", strong: "safe", grey: "grey", average: "grey" })[label] ||
     "distress";
+  const loaded = financials.data && metrics.data && scores.data;
 
   return (
     <section className="content-section glance-section">
@@ -792,12 +893,27 @@ function GlanceSection({ setActivePage, onAskEdith }) {
         title={`Tata Steel at a glance (${year}, consolidated)`}
         description="Reported values with their year-on-year change, straight from the verified statements."
         action={
-          <button className="text-link" onClick={() => setActivePage("Dashboard")}>
-            Open dashboard
-            <Icon name="arrow" size={16} />
-          </button>
+          <div className="glance-actions">
+            <label className="select-control">
+              <span>Year</span>
+              <select value={year} onChange={(event) => setYear(event.target.value)}>
+                {GLANCE_YEARS.map((item) => (
+                  <option key={item} value={item}>
+                    {item}
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            <button className="text-link" onClick={() => setActivePage("Dashboard")}>
+              Open dashboard
+              <Icon name="arrow" size={16} />
+            </button>
+          </div>
         }
       />
+
+      <AboutTataSteel />
 
       <div className="glance-grid">
         {itemTile("revenue_from_operations", "Revenue from operations", "chart")}
@@ -842,6 +958,24 @@ function GlanceSection({ setActivePage, onAskEdith }) {
         />
       </div>
 
+      {loaded && (
+        <GlanceBullets
+          year={year}
+          revenue={itemData("revenue_from_operations")}
+          profit={itemData("profit_for_the_year")}
+          netDebt={netDebt?.values[year] ?? null}
+          altman={altman}
+          piotroski={piotroski}
+        />
+      )}
+
+      <p className="glance-closing">
+        <Icon name="spark" size={16} />
+        Edith can explain any of these: trends, ratios, DuPont, composite
+        scores, segment and region performance, audit matters or an overall
+        verdict, with every figure cited.
+      </p>
+
       <div className="try-asking">
         <span className="try-asking-label">
           <Icon name="spark" size={16} />
@@ -849,15 +983,15 @@ function GlanceSection({ setActivePage, onAskEdith }) {
         </span>
 
         <div className="try-asking-chips">
-          {TRY_ASKING.map((item) => (
+          {TRY_ASKING.map((question) => (
             <button
-              key={item.question}
+              key={question}
               type="button"
               className="question-chip"
-              onClick={() => onAskEdith(item.question)}
-              title={item.note || "Opens Ask Edith and sends this question"}
+              onClick={() => onAskEdith(question)}
+              title="Opens Ask Edith and sends this question"
             >
-              {item.question}
+              {question}
             </button>
           ))}
         </div>
@@ -880,8 +1014,7 @@ function Footer({ setActivePage }) {
         <Brand />
 
         <p>
-          Figures come from Tata Steel's annual reports for FY2022-23 to
-          FY2025-26 and are verified against the source pages.
+          {COVERAGE_TEXT} Every figure is verified against its source page.
           For research and educational use, not investment advice.
         </p>
 

@@ -8155,3 +8155,563 @@ a.report-card:hover {
   .typing-dots i,
   .chart-live .chart-line-animated { animation: none; stroke-dashoffset: 0; }
 }
+
+
+/* =========================================================
+   EDITH: UI REVIEW CHANGES (task 06)
+   Additions only, appended after everything else. Reuses her
+   variables, gradients, card styles and accent colours.
+   ========================================================= */
+
+/* ---------- Shared: n/a values and the FY2021-22 marker ---------- */
+
+.comparative-mark {
+  display: inline-grid;
+  place-items: center;
+  width: 13px;
+  height: 13px;
+  margin-left: 3px;
+  border: 1px solid #bcd2f2;
+  border-radius: 50%;
+  color: #3869b8;
+  background: #eef4fd;
+  font-family: Georgia, serif;
+  font-size: 9px;
+  font-style: italic;
+  font-weight: 800;
+  line-height: 1;
+  vertical-align: super;
+  cursor: help;
+}
+
+.select-control {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.select-control > span {
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 750;
+}
+
+.select-control select {
+  min-height: 36px;
+  padding: 7px 34px 7px 12px;
+  border: 1px solid #cfe2da;
+  border-radius: 8px;
+  color: var(--ink);
+  background:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23087e68' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E")
+      no-repeat right 11px center,
+    #fff;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 750;
+  cursor: pointer;
+  appearance: none;
+  transition: border-color .2s ease, box-shadow .2s ease;
+}
+
+.select-control select:hover,
+.select-control select:focus-visible {
+  border-color: #6ab59c;
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(13, 157, 121, .14);
+}
+
+.select-control select:disabled { opacity: .6; cursor: default; }
+
+
+/* ---------- Home: hero fits one screen (sizes and spacing only) ---------- */
+
+@media (min-width: 1101px) {
+  .hero-section {
+    min-height: min(730px, calc(100vh - 80px));
+    padding-top: clamp(18px, 4.2vh, 70px);
+    padding-bottom: clamp(18px, 4.2vh, 75px);
+  }
+
+  .hero-section .tata-hero-badge { margin-bottom: clamp(6px, 1.4vh, 20px); }
+
+  .hero-section .hero-copy h1 {
+    margin-top: clamp(6px, 1.4vh, 20px);
+    font-size: clamp(44px, min(6vw, 8.4vh), 92px);
+  }
+
+  .hero-section .hero-description {
+    margin-top: clamp(10px, 2.2vh, 27px);
+    font-size: clamp(15px, min(1.45vw, 2.3vh), 22px);
+    line-height: 1.62;
+  }
+
+  .hero-section .hero-actions { margin-top: clamp(12px, 2.6vh, 30px); }
+
+  .hero-section .button-large {
+    min-height: clamp(42px, 6.2vh, 53px);
+    padding-top: clamp(9px, 1.5vh, 15px);
+    padding-bottom: clamp(9px, 1.5vh, 15px);
+  }
+
+  .hero-section .hero-note { margin-top: clamp(8px, 1.9vh, 23px); }
+
+  .hero-section .tata-hero-art { min-height: clamp(340px, 70vh, 580px); }
+  .hero-section .steel-data-core { width: min(540px, 78%, 64vh); }
+  .hero-section .orbit-large { width: min(560px, 74vh); height: min(560px, 74vh); }
+  .hero-section .orbit-small { width: min(450px, 59vh); height: min(450px, 59vh); }
+  .hero-section .finance-card-one { top: clamp(60px, 16vh, 125px); }
+  .hero-section .finance-card-two { bottom: clamp(60px, 15vh, 118px); }
+  .hero-section .finance-card-three { bottom: clamp(10px, 4vh, 33px); }
+}
+
+
+/* ---------- Home: at a glance ---------- */
+
+.glance-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 18px;
+}
+
+.about-card {
+  margin-bottom: 18px;
+  padding: 20px 22px;
+  border: 1px solid #d5e9e1;
+  border-radius: 12px;
+  background: linear-gradient(120deg, #f3fbf8 0%, #f2f6fd 100%);
+}
+
+.about-card-heading {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.about-card-heading h3 {
+  margin: 0;
+  color: var(--ink);
+  font-size: 19px;
+}
+
+.about-card-heading small { color: var(--muted); font-size: 13px; }
+
+.about-facts {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px 26px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.about-facts li {
+  display: flex;
+  gap: 9px;
+  color: var(--ink-soft);
+  font-size: 15px;
+  line-height: 1.6;
+}
+
+.about-facts li > svg { flex: 0 0 auto; margin-top: 4px; color: var(--green); }
+
+.fact-page-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  margin-left: 2px;
+  padding: 0 7px;
+  border: 1px solid #cfe6dd;
+  border-radius: 6px;
+  color: var(--green);
+  background: #fff;
+  font-size: 12px;
+  font-weight: 750;
+  white-space: nowrap;
+}
+
+.fact-page-link:hover { border-color: #6ab59c; background: #f0faf5; }
+
+.glance-bullets {
+  margin-top: 20px;
+  padding: 18px 22px;
+  border: 1px solid #dfe8e4;
+  border-left: 3px solid var(--green-bright);
+  border-radius: 10px;
+  background: #fff;
+}
+
+.glance-bullets h3 { margin: 0 0 8px; color: var(--ink); font-size: 19px; }
+
+.glance-bullets ul {
+  display: grid;
+  gap: 5px;
+  margin: 0;
+  padding-left: 20px;
+  color: var(--ink-soft);
+  font-size: 15px;
+  line-height: 1.6;
+}
+
+.glance-closing {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin: 18px 0 0;
+  color: var(--muted);
+  font-size: 15px;
+  line-height: 1.6;
+}
+
+.glance-closing svg { flex: 0 0 auto; margin-top: 4px; color: var(--green); }
+
+
+/* ---------- Ask Edith: full-height sidebar, taller chat ---------- */
+
+.app-shell .ask-page .ask-sidebar {
+  height: auto;
+  max-height: none;
+  overflow: visible;
+}
+
+/* Same clipping as before, but "clip" does not make the shell a scroll
+   container, so the chat panel below can stay sticky. */
+.app-shell { overflow: clip; }
+
+/* Nothing scrolls under the toggle any more, so it stays in flow. */
+.app-shell .ask-page .sidebar-toggle { position: static; }
+
+.app-shell .ask-page .suggestion-list { max-height: none; overflow: visible; }
+
+@media (min-width: 901px) {
+  .app-shell .ask-page .ask-layout { align-items: start; }
+  .app-shell .ask-page .ask-sidebar { align-self: stretch; }
+
+  .app-shell .ask-page .chat-panel {
+    position: sticky;
+    top: 92px;
+    height: max(600px, calc(100vh - 108px));
+    min-height: 0;
+  }
+}
+
+/* Bigger, readable sidebar text */
+.app-shell .ask-page .suggestion-item { min-height: 0; padding-top: 12px; padding-bottom: 12px; }
+.app-shell .ask-page .suggestion-item span { font-size: 12px; }
+.app-shell .ask-page .suggestion-item strong { font-size: 17px; line-height: 1.4; }
+.app-shell .ask-page .suggestion-item small { font-size: 13px; }
+.app-shell .ask-page .sidebar-heading h2 { font-size: 19px; }
+.app-shell .ask-page .sidebar-heading p { font-size: 15.5px; }
+.app-shell .ask-page .follow-up-hint { font-size: 14.5px; line-height: 1.55; }
+.app-shell .ask-page .sidebar-info-title { font-size: 16px; }
+.app-shell .ask-page .sidebar-info-row { font-size: 15px; }
+.app-shell .ask-page .sidebar-info-row b { font-size: 15px; }
+.app-shell .ask-page .recent-heading b { font-size: 16px; }
+.app-shell .ask-page .recent-question { font-size: 15.5px; line-height: 1.5; }
+.app-shell .ask-page .recent-empty { font-size: 14.5px; }
+
+/* Answer tables fit the panel: wrap long cells before scrolling */
+.app-shell .answer-table-wrap table { table-layout: auto; font-size: 14px; }
+
+.app-shell .answer-table-wrap th,
+.app-shell .answer-table-wrap td {
+  min-width: 70px;
+  white-space: normal;
+  overflow-wrap: break-word;
+  vertical-align: top;
+}
+
+
+/* ---------- Dashboard: controls, lighter gradient, selected year ---------- */
+
+.app-shell .dashboard-page .dashboard-controls {
+  flex-wrap: wrap;
+  border-color: #b9dcd0;
+  background: linear-gradient(120deg, #dcf3eb 0%, #dce8f7 100%);
+}
+
+.app-shell .dashboard-page .control-note { color: var(--ink-soft); font-size: 14px; font-weight: 650; }
+
+.app-shell .dashboard-page .metric-card {
+  border-color: #bfdcd2;
+  background: linear-gradient(120deg, #e3f5ef 0%, #e2ecf8 100%);
+}
+
+.app-shell .dashboard-page .metric-card.metric-active {
+  border-color: #0b9275;
+  box-shadow: inset 0 3px 0 #0b9275, 0 10px 24px rgba(18, 62, 50, .1);
+}
+
+.app-shell .dashboard-page .metric-card-top > span:first-child { color: var(--ink-soft); }
+.app-shell .dashboard-page .metric-card-bottom span { font-size: 12.5px; color: var(--ink-soft); }
+
+.app-shell .dashboard-panel.statement-panel {
+  border-color: #b9dcd0;
+  color: var(--ink);
+  background: linear-gradient(120deg, #dcf3eb 0%, #dce8f7 100%) !important;
+}
+
+.app-shell .statement-panel .panel-heading h2,
+.app-shell .statement-panel .statement-row strong { color: var(--ink); }
+
+.app-shell .statement-panel .panel-heading p,
+.app-shell .statement-panel .statement-row small { color: #3f5a54; }
+
+.app-shell .statement-panel .statement-row { border-bottom-color: rgba(8, 126, 104, .16); }
+
+.app-shell .statement-panel .statement-icon { background: #fff; color: var(--green); }
+
+.app-shell .statement-panel .report-links a {
+  gap: 5px;
+  padding: 4px 9px;
+  border-color: rgba(8, 126, 104, .28);
+  color: var(--green-dark);
+  background: rgba(255, 255, 255, .7);
+  font-size: 13px;
+}
+
+.app-shell .statement-panel .report-links a em {
+  color: var(--muted);
+  font-size: 12px;
+  font-style: normal;
+  font-weight: 650;
+}
+
+.app-shell .statement-panel .report-links a:hover { border-color: var(--green); background: #fff; }
+
+.app-shell .statement-panel .report-links a.selected-year {
+  border-color: #4b88df;
+  box-shadow: inset 0 -2px 0 #4b88df;
+}
+
+.dashboard-panel.statement-panel-full { margin-top: 18px; }
+
+/* Group-level note while a region is selected */
+.group-level-row { margin: 0 0 10px; }
+
+.group-level-note {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  margin-top: 6px;
+  padding: 3px 10px;
+  border: 1px solid #eed9ad;
+  border-radius: 999px;
+  color: #7a5a1c;
+  background: #fff8ea;
+  font-size: 12.5px;
+  font-weight: 700;
+  line-height: 1.5;
+}
+
+.dashboard-page .panel-heading .group-level-note { display: inline-flex; }
+
+/* Selected year column in the tables */
+.data-table th.selected-year,
+.data-table td.selected-year { background: rgba(75, 136, 223, .08); }
+.data-table thead th.selected-year { color: #2f67b8; box-shadow: inset 0 -2px 0 #4b88df; }
+
+
+/* ---------- Dashboard: larger chart and ratio text ---------- */
+
+.dashboard-page .performance-panel { display: flex; flex-direction: column; }
+
+.app-shell .dashboard-page .performance-panel .chart-area.chart-live {
+  flex: 1 1 auto;
+  height: auto;
+  min-height: 300px;
+}
+
+.app-shell .dashboard-page .chart-live .chart-plot {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 74px;
+  height: auto;
+}
+
+.app-shell .dashboard-page .chart-legend { gap: 18px; font-size: 13.5px; }
+.app-shell .dashboard-page .chart-legend .legend-dot { width: 10px; height: 10px; }
+.app-shell .dashboard-page .chart-period-note { color: var(--muted); }
+.app-shell .dashboard-page .chart-y-live span { color: #6f817b; font-size: 13px; }
+.app-shell .dashboard-page .chart-x-labels { color: #6f817b; font-size: 13.5px; }
+.app-shell .dashboard-page .chart-x-labels span.selected { color: #2f67b8; font-weight: 800; }
+
+.app-shell .dashboard-page .ratio-topline span { font-size: 15px; }
+.app-shell .dashboard-page .ratio-topline strong { font-size: 17px; }
+.app-shell .dashboard-page .ratio-item small { font-size: 13px; }
+.app-shell .dashboard-page .panel-footnote { font-size: 14px; line-height: 1.6; }
+
+.mini-sparkline circle.sparkline-selected { fill: #4b88df; stroke: #fff; stroke-width: 1.2; }
+
+/* One solid colour for the line and points; selected year in blue */
+.chart-point.selected {
+  z-index: 3;
+  width: 20px;
+  height: 20px;
+  border: 3px solid #fff;
+  background: #4b88df;
+  box-shadow: 0 0 0 2px #4b88df, 0 4px 12px rgba(47, 103, 184, .3);
+}
+
+.chart-point-label {
+  position: absolute;
+  z-index: 3;
+  padding: 3px 9px;
+  border-radius: 7px;
+  color: #fff;
+  background: #3978d7;
+  box-shadow: 0 6px 14px rgba(47, 103, 184, .25);
+  font-size: 13px;
+  font-weight: 800;
+  white-space: nowrap;
+  transform: translate(-50%, calc(-100% - 16px));
+  pointer-events: none;
+}
+
+.chart-point-label.below { transform: translate(-50%, 16px); }
+.chart-point-label.align-right { transform: translate(-88%, calc(-100% - 16px)); }
+.chart-point-label.align-right.below { transform: translate(-88%, 16px); }
+
+
+/* ---------- Dashboard: region view ---------- */
+
+.dashboard-panel.region-panel { margin-bottom: 14px; }
+
+.region-stats {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 12px;
+  margin-top: 6px;
+}
+
+.region-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 14px 16px;
+  border: 1px solid #bfdcd2;
+  border-radius: 10px;
+  background: linear-gradient(120deg, #e3f5ef 0%, #e2ecf8 100%);
+}
+
+.region-stat span { color: var(--ink-soft); font-size: 13.5px; font-weight: 700; }
+
+.region-stat strong {
+  color: #142a26;
+  font-size: 21px;
+  font-weight: 800;
+  letter-spacing: -.02em;
+}
+
+.region-stat strong small { color: var(--muted); font-size: 12px; font-weight: 700; }
+
+.region-trend { margin-top: 18px; }
+.region-trend .chart-legend { align-items: center; }
+.region-trend .chart-legend .segmented-control { margin-left: auto; }
+.app-shell .dashboard-page .region-trend .chart-area.chart-live { height: 260px; }
+
+.region-sources a {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  margin-right: 8px;
+  color: var(--green);
+  font-weight: 750;
+}
+
+
+/* ---------- Evaluation: larger text ---------- */
+
+.app-shell .evaluation-page .page-title-row p { font-size: 18px; }
+.app-shell .evaluation-page .summary-label { font-size: 13px; }
+.app-shell .evaluation-page .evaluation-summary-copy h2 { font-size: 31px; }
+.app-shell .evaluation-page .evaluation-summary-copy p { font-size: 16px; line-height: 1.6; }
+.app-shell .evaluation-page .evaluation-set-card strong { font-size: 16px; }
+.app-shell .evaluation-page .evaluation-set-card span:not(.status-pill) { font-size: 15px; line-height: 1.6; }
+.app-shell .evaluation-page .evaluation-measures .section-heading h2 { font-size: 34px; }
+.app-shell .evaluation-page .evaluation-measures .section-heading p { font-size: 17px; }
+.app-shell .evaluation-page .evaluation-measure-card h3 { font-size: 18px; }
+.app-shell .evaluation-page .evaluation-measure-card p { font-size: 15px; line-height: 1.6; }
+.app-shell .evaluation-page .evaluation-measure-card small,
+.app-shell .evaluation-page .measure-definition { font-size: 13px; line-height: 1.5; }
+.app-shell .evaluation-page .panel-heading h2 { font-size: 22px; }
+.app-shell .evaluation-page .panel-heading p { font-size: 15.5px; line-height: 1.6; }
+.app-shell .evaluation-page .category-filter button { font-size: 13.5px; }
+.app-shell .evaluation-page .category-table-head,
+.app-shell .evaluation-page .category-table-row,
+.app-shell .evaluation-page .category-table-row > span,
+.app-shell .evaluation-page .category-table-row > span:first-child { font-size: 14.5px; }
+.app-shell .evaluation-page .flagged-empty strong { font-size: 16px; }
+.app-shell .evaluation-page .flagged-grade { font-size: 13.5px; }
+.app-shell .evaluation-page .flagged-empty p { font-size: 15px; line-height: 1.6; }
+.app-shell .evaluation-page .flagged-placeholder small { color: #6f817b; font-size: 14px; line-height: 1.6; }
+.app-shell .evaluation-page .methodology-card h2 { font-size: 25px; }
+.app-shell .evaluation-page .methodology-card p { font-size: 16.5px; line-height: 1.75; }
+
+
+/* ---------- Sources: larger text, FY2021-22 card ---------- */
+
+.app-shell .sources-page .page-title-row p { font-size: 18px; }
+.app-shell .sources-page .section-heading p { font-size: 17.5px; line-height: 1.65; }
+.app-shell .sources-page .report-card strong { font-size: 16px; }
+.app-shell .sources-page .report-card small { font-size: 13.5px; line-height: 1.5; }
+.app-shell .sources-page .report-year { font-size: 13px; }
+.app-shell .sources-page .evaluation-measure-card h3 { font-size: 18px; }
+.app-shell .sources-page .evaluation-measure-card p { font-size: 15px; line-height: 1.6; }
+.app-shell .sources-page .methodology-card h2 { font-size: 24px; }
+.app-shell .sources-page .methodology-card p { font-size: 16px; line-height: 1.75; }
+.app-shell .sources-page .panel-heading p { font-size: 15.5px; }
+.app-shell .sources-page .limitations-list li { font-size: 15.5px; line-height: 1.6; }
+
+@media (min-width: 1101px) {
+  .app-shell .sources-page .report-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+
+@media (min-width: 1600px) {
+  .app-shell .sources-page .report-grid { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+}
+
+.report-card-link strong { transition: color .2s ease; }
+.report-card-link:hover strong { color: var(--green); }
+
+.report-card-open { flex: 0 0 auto; color: var(--muted-light); }
+.report-card-open:hover { color: var(--green); }
+
+.report-card small a {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  color: var(--green);
+  font-weight: 750;
+}
+
+.report-card small a.official-link {
+  color: var(--muted);
+  font-weight: 650;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.dashboard-panel.report-card-comparative {
+  border-style: dashed;
+  background: linear-gradient(120deg, #f3fbf8 0%, #f2f6fd 100%);
+}
+
+
+/* ---------- Responsive ---------- */
+
+@media (max-width: 1100px) {
+  .region-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .about-facts { grid-template-columns: 1fr; }
+}
+
+/* Composite scores: all five year columns fit the card */
+.app-shell .dashboard-page .scores-table tbody th { min-width: 160px; }
+.app-shell .dashboard-page .scores-table th,
+.app-shell .dashboard-page .scores-table td { padding-left: 8px; padding-right: 10px; }
+
+.app-shell .dashboard-page .control-note { margin-left: auto; white-space: nowrap; }

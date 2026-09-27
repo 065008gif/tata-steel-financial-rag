@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import { Icon, StatusPill } from "./ui.jsx";
+import { COVERAGE_TEXT, Icon, StatusPill } from "./ui.jsx";
 
 /* =========================================================
    ASK EDITH
@@ -10,57 +10,44 @@ import { Icon, StatusPill } from "./ui.jsx";
 export const VERDICT_QUESTION =
   "Give an overall verdict on Tata Steel's financial health in FY2025-26.";
 
+export const PROFIT_TREND_QUESTION =
+  "How has Tata Steel's consolidated profit for the year changed from FY2022-23 to FY2025-26?";
+
+export const DUPONT_QUESTION =
+  "Run a DuPont analysis of Tata Steel's consolidated ROE for FY2025-26.";
+
+// Short labels in the sidebar; each sends its full question.
 export const suggestedQuestions = [
   {
-    category: "Lookups",
-    question:
-      "What was Tata Steel's consolidated revenue from operations in FY2025-26?",
-  },
-  {
-    category: "Lookups",
-    question:
-      "What were Tata Steel's consolidated current borrowings as at 31 March 2026?",
-  },
-  {
     category: "Trends",
-    question:
-      "How has Tata Steel's consolidated profit for the year changed from FY2022-23 to FY2025-26?",
-  },
-  {
-    category: "Trends",
-    question:
-      "What is the trend in Tata Steel's consolidated current ratio from FY2022-23 to FY2025-26?",
+    label: "Profit trend, FY23 to FY26",
+    question: PROFIT_TREND_QUESTION,
   },
   {
     category: "Ratios",
-    question: "Run a DuPont analysis of Tata Steel's consolidated ROE for FY2025-26.",
-  },
-  {
-    category: "Ratios",
-    question:
-      "What was Tata Steel's consolidated debt-to-equity ratio in FY2025-26?",
+    label: "DuPont analysis of ROE",
+    question: DUPONT_QUESTION,
   },
   {
     category: "Scores",
+    label: "Altman, Piotroski, Beneish",
     question:
       "What are Tata Steel's Altman Z'', Piotroski F and Beneish M scores for FY2025-26?",
   },
   {
     category: "Segments",
+    label: "India vs Netherlands vs UK",
     question:
       "Compare the EBITDA of Tata Steel's India, Netherlands and UK segments in FY2024-25 and FY2025-26.",
   },
   {
-    category: "Audit & risk",
-    question:
-      "What were the key audit matters in Tata Steel's FY2025-26 consolidated audit report?",
-  },
-  {
     category: "Verdict",
+    label: "Overall verdict",
     question: VERDICT_QUESTION,
   },
   {
     category: "Try to trick it",
+    label: "Can it predict FY2027-28?",
     question: "What will Tata Steel's revenue be in FY2027-28?",
     note: "Edith refuses what the reports can't answer",
   },
@@ -184,7 +171,7 @@ function PendingAnswer({ turn, onCancel }) {
           <div className="evidence-skeleton" />
 
           <div className="pending-footer">
-            <small>Usually 10-60 seconds.</small>
+            <small>Usually 10-60 seconds; the first question may take 2-3 minutes.</small>
 
             <button
               type="button"
@@ -427,9 +414,10 @@ export default function AskPage({ setActivePage, chat }) {
                 className={`suggestion-item ${item.note ? "suggestion-trick" : ""}`}
                 onClick={() => askQuestion(item.question)}
                 disabled={isPending}
+                title={item.question}
               >
                 <span>{item.category}</span>
-                <strong>{item.question}</strong>
+                <strong>{item.label}</strong>
                 {item.note && <small>{item.note}</small>}
                 <Icon name="arrow" size={16} />
               </button>
@@ -539,9 +527,7 @@ export default function AskPage({ setActivePage, chat }) {
 
                     <ul>
                       <li>
-                        I cover Tata Steel's four annual reports, consolidated
-                        and standalone, with figures for FY2021-22 to
-                        FY2025-26.
+                        {COVERAGE_TEXT} Consolidated and standalone.
                       </li>
                       <li>
                         Every figure in an answer is checked against its
@@ -653,7 +639,7 @@ export default function AskPage({ setActivePage, chat }) {
           className="text-link"
           onClick={() => setActivePage("Evaluation")}
         >
-          Review evaluation design
+          See evaluation results
           <Icon name="arrow" size={15} />
         </button>
       </div>

@@ -99,6 +99,18 @@ export function getSegments() {
   return cachedGet("/api/segments");
 }
 
+export function getStatements(scope = "consolidated") {
+  return cachedGet(`/api/statements?scope=${scope}`);
+}
+
+export function getRegions() {
+  return cachedGet("/api/regions");
+}
+
+export function getCompany() {
+  return cachedGet("/api/company");
+}
+
 export function getEvaluation() {
   return cachedGet("/api/evaluation");
 }

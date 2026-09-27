@@ -5,6 +5,7 @@ import { defineConfig } from 'vite'
 export default defineConfig({
   plugins: [react()],
   server: {
+    allowedHosts: ['.trycloudflare.com'],   // allow the temporary Cloudflare review tunnel
     proxy: {
       // The FastAPI backend (Docker) — every call in src/api.js uses a relative /api/... path.
       '/api': {

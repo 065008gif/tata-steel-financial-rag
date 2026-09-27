@@ -67,7 +67,7 @@ function ratioOf(fraction) {
 }
 
 function formatRate(value) {
-  return typeof value === "number" ? value.toFixed(2) : "—";
+  return typeof value === "number" ? value.toFixed(2) : "n/a";
 }
 
 export default function EvaluationPage() {
@@ -97,7 +97,7 @@ export default function EvaluationPage() {
         "Compare extracted values with reviewed reference answers.",
       icon: "chart",
       value: summary.numeric_questions_fully_correct,
-      detail: `numeric questions fully correct · ${summary.expected_numbers_found || "—"} expected numbers found`,
+      detail: `numeric questions fully correct · ${summary.expected_numbers_found || "n/a"} expected numbers found`,
     },
     {
       title: "Citation correctness",
@@ -121,7 +121,7 @@ export default function EvaluationPage() {
         "Measure whether relevant passages are found for each question.",
       icon: "search",
       value: `${formatRate(retrieval["hit_rate@4"])} / ${formatRate(retrieval.mrr)}`,
-      detail: `Hit Rate@4 / MRR · source pages retrieved: ${summary.source_pages_retrieved || "—"}`,
+      detail: `Hit Rate@4 / MRR · source pages retrieved: ${summary.source_pages_retrieved || "n/a"}`,
     },
     {
       title: "Abstention",
@@ -161,7 +161,7 @@ export default function EvaluationPage() {
           <h1>Evaluation</h1>
 
           <p>
-            How answer quality will be tested before results are treated as
+            How answer quality is tested before results are treated as
             reliable.
           </p>
         </div>
@@ -189,7 +189,9 @@ export default function EvaluationPage() {
           >
 
             <div className="gauge-center">
-              <strong>{headline || "—"}</strong>
+              <strong title={headline ? undefined : "No evaluation run is available yet"}>
+                {headline || "n/a"}
+              </strong>
               <span>Numeric</span>
             </div>
 
@@ -252,7 +254,7 @@ export default function EvaluationPage() {
       <section className="content-section evaluation-measures">
 
         <SectionHeading
-          title="What will be assessed?"
+          title="What is assessed?"
           description="Each measure addresses a different part of the evidence chain."
         />
 
@@ -281,8 +283,11 @@ export default function EvaluationPage() {
 
               <p>{measure.description}</p>
 
-              <strong className="measure-value">
-                {available ? measure.value || "—" : "—"}
+              <strong
+                className="measure-value"
+                title={available && measure.value ? undefined : "No score recorded in the latest run"}
+              >
+                {available ? measure.value || "n/a" : "n/a"}
               </strong>
 
               <small className="measure-definition">
@@ -390,10 +395,14 @@ export default function EvaluationPage() {
                     <span>
                       <b>{record.id}</b> {record.question}
                     </span>
-                    <span>{record.numeric || "—"}</span>
-                    <span>{record.citation || "—"}</span>
+                    <span title={record.numeric ? undefined : "No figures to check for this question"}>
+                      {record.numeric || "n/a"}
+                    </span>
+                    <span title={record.citation ? undefined : "No citation check for this question"}>
+                      {record.citation || "n/a"}
+                    </span>
                     <span className={isFull(record.grounded) ? "result-pass" : "result-partial"}>
-                      {record.grounded || "—"}
+                      {record.grounded || "n/a"}
                     </span>
                     <span>{record.seconds} s</span>
                   </div>

@@ -2,17 +2,23 @@ import { useState } from "react";
 import {
   getFinancials,
   getMetrics,
-  getReports,
+  getRegions,
   getScores,
   getSegments,
+  getStatements,
 } from "../api.js";
 import { VERDICT_QUESTION } from "./AskPage.jsx";
 import {
+  COMPARATIVE_NOTE,
+  COMPARATIVE_YEAR,
   Icon,
   LoadError,
+  Missing,
+  NEEDS_PRIOR_YEAR_NOTE,
   RestatedMark,
   Sparkline,
   Value,
+  YearLabel,
   formatChangePct,
   formatCrore,
   formatMetric,
@@ -70,6 +76,19 @@ const scoreRows = [
   },
 ];
 
+const FALLBACK_YEARS = ["FY2021-22", "FY2022-23", "FY2023-24", "FY2024-25", "FY2025-26"];
+
+// Region filter: the six geographic regions from /api/regions, in this order.
+const REGION_KEYS = ["india", "netherlands", "uk", "europe", "south_east_asia", "rest_of_world"];
+
+const GROUP_LEVEL_NOTE = "Group-level only: the reports don't break this down by region";
+
+const statementRows = [
+  ["profit_and_loss", "Income statement", "Revenue, costs, and profit"],
+  ["balance_sheet", "Balance sheet", "Assets, liabilities, and equity"],
+  ["cash_flow", "Cash flow statement", "Operating, investing, and financing cash flows"],
+];
+
 const RESTATED_SEGMENT_NOTE =
   "Restated: a later report presents a different figure for this year; the latest report's figure is shown.";
 
@@ -81,8 +100,24 @@ function lastYear(years) {
   return years?.[years.length - 1];
 }
 
+/** Why a year-on-year change is missing: FY2021-22 has no prior year. */
+function missingChangeNote(year) {
+  return year === COMPARATIVE_YEAR ? NEEDS_PRIOR_YEAR_NOTE : "Not reported";
+}
+
+/** The small "Group-level only" note shown while a region is selected. */
+function GroupLevelNote({ region }) {
+  if (!region) return null;
+  return (
+    <span className="group-level-note" title={GROUP_LEVEL_NOTE}>
+      <Icon name="layers" size={13} />
+      {GROUP_LEVEL_NOTE}
+    </span>
+  );
+}
+
 /** One item's five years from /api/financials or /api/metrics. */
-function buildSeries(key, financials, metrics) {
+function buildSeries(key, financials, metrics, selectedYear) {
   if (key === "net_debt") {
     const metric = metrics?.metrics.find((item) => item.key === "net_debt");
     if (!metric) return null;
@@ -102,7 +137,7 @@ function buildSeries(key, financials, metrics) {
   const item = financials?.items[key];
   if (!item) return null;
 
-  const latest = lastYear(financials.years);
+  const year = selectedYear || lastYear(financials.years);
 
   return {
     years: financials.years,
@@ -112,7 +147,7 @@ function buildSeries(key, financials, metrics) {
       restated: Boolean(item.values[year]?.restated),
       source: item.values[year]?.source,
     })),
-    yoy: item.yoy_changes.find((change) => change.to === latest) || null,
+    yoy: item.yoy_changes.find((change) => change.to === year) || null,
   };
 }
 
@@ -183,7 +218,7 @@ const CHART_HEIGHT = 250;
 const GRID_Y = [195, 140, 85, 30]; // Edith's gridlines, bottom to top
 const X_PAD = 36;
 
-function PerformanceChart({ series, label }) {
+function PerformanceChart({ series, label, selectedYear }) {
   const [hovered, setHovered] = useState(null);
   const present = series.points.filter((point) => point.value != null);
 
@@ -256,10 +291,6 @@ function PerformanceChart({ series, label }) {
                 <stop offset="100%" stopColor="#0f9b79" stopOpacity="0" />
               </linearGradient>
 
-              <linearGradient id="chartStroke" x1="0" y1="0" x2="1" y2="0">
-                <stop offset="0%" stopColor="#0d9d79" />
-                <stop offset="100%" stopColor="#4c8ce8" />
-              </linearGradient>
             </defs>
 
             {GRID_Y.map((y) => (
@@ -294,7 +325,7 @@ function PerformanceChart({ series, label }) {
               key={`line-${animationKey}`}
               d={line}
               fill="none"
-              stroke="url(#chartStroke)"
+              stroke="#0d9d79"
               strokeWidth="3.5"
               strokeLinecap="round"
               vectorEffect="non-scaling-stroke"
@@ -306,7 +337,7 @@ function PerformanceChart({ series, label }) {
             <button
               type="button"
               key={point.year}
-              className={`chart-point ${point.index === count - 1 ? "latest" : ""} ${
+              className={`chart-point ${point.year === selectedYear ? "selected" : ""} ${
                 hovered === point.index ? "active" : ""
               }`}
               style={{
@@ -321,6 +352,24 @@ function PerformanceChart({ series, label }) {
             />
           ))}
 
+          {coords
+            .filter((point) => point.year === selectedYear && hovered !== point.index)
+            .map((point) => (
+              <span
+                key={`label-${point.year}`}
+                className={`chart-point-label ${point.x > CHART_WIDTH * 0.8 ? "align-right" : ""} ${
+                  point.y < CHART_HEIGHT * 0.3 ? "below" : ""
+                }`}
+                style={{
+                  left: `${(point.x / CHART_WIDTH) * 100}%`,
+                  top: `${(point.y / CHART_HEIGHT) * 100}%`,
+                }}
+                aria-hidden="true"
+              >
+                ₹ {formatCrore(point.value)} cr
+              </span>
+            ))}
+
           {hovered != null && coords.find((point) => point.index === hovered) && (
             <ChartTooltip point={coords.find((point) => point.index === hovered)} />
           )}
@@ -332,9 +381,10 @@ function PerformanceChart({ series, label }) {
           {series.points.map((point, index) => (
             <span
               key={point.year}
+              className={point.year === selectedYear ? "selected" : ""}
               style={{ left: `${(xAt(index) / CHART_WIDTH) * 100}%` }}
             >
-              {point.year}
+              <YearLabel year={point.year} />
             </span>
           ))}
         </div>
@@ -366,12 +416,161 @@ function ChartTooltip({ point }) {
 }
 
 /* ---------------------------------------------------------
+   Region view (from /api/regions; all arithmetic in the backend)
+   --------------------------------------------------------- */
+
+function regionYearsText(region, years) {
+  const present = years.filter((year) => region.values[year]);
+  if (present.length === 0) return "no year";
+  return present.length === 1
+    ? present[0]
+    : `${present[0]} to ${present[present.length - 1]}`;
+}
+
+function RegionView({ region, years, year }) {
+  const [item, setItem] = useState("segment_revenue");
+  const values = region.values[year];
+  const absentNote = `${region.name} is reported only for ${regionYearsText(region, years)}`;
+  const pct = (value) => (value == null ? null : `${formatNumber(value, 2)}%`);
+
+  const stats = [
+    { label: "Revenue (segment)", value: values?.segment_revenue, crore: true },
+    { label: "EBITDA", value: values?.ebitda, crore: true },
+    { label: "EBITDA margin", value: pct(values?.ebitda_margin_pct) },
+    {
+      label: "Share of group revenue",
+      value: pct(values?.share_of_group_external_revenue_pct),
+      note: "External revenue as a share of the group's external revenue",
+    },
+    {
+      label: "Share of group EBITDA",
+      value: pct(values?.share_of_group_ebitda_pct),
+      note: "Share of the group's EBITDA after inter-segment eliminations",
+    },
+  ];
+
+  const sourceText = (fy) =>
+    (region.values[fy]?.sources || [])
+      .map((source) => `${source.report} report, page ${source.page_label}`)
+      .join("; ");
+
+  const series = {
+    years,
+    points: years.map((fy) => ({
+      year: fy,
+      value: region.values[fy]?.[item] ?? null,
+      restated: Object.values(region.values[fy]?.restated || {}).some((items) =>
+        items.includes(item),
+      ),
+      source: sourceText(fy),
+    })),
+  };
+
+  return (
+    <section className="dashboard-panel region-panel">
+      <div className="panel-heading">
+        <div>
+          <h2>Region view: {region.name}</h2>
+          <p>
+            Consolidated segment note · <YearLabel year={year} /> · INR crore
+            {values?.components?.length > 0 &&
+              ` · Includes ${values.components.map((component) => component.name).join(", ")}`}
+          </p>
+        </div>
+
+        <span className="panel-icon">
+          <Icon name="layers" size={20} />
+        </span>
+      </div>
+
+      <div className="region-stats">
+        {stats.map((stat) => (
+          <div className="region-stat" key={stat.label} title={stat.note}>
+            <span>{stat.label}</span>
+            <strong>
+              {stat.value == null ? (
+                <Missing note={absentNote} />
+              ) : stat.crore ? (
+                <>
+                  <small>₹</small> {formatCrore(stat.value)} <small>cr</small>
+                </>
+              ) : (
+                stat.value
+              )}
+            </strong>
+          </div>
+        ))}
+      </div>
+
+      <div className="region-trend">
+        <div className="chart-legend">
+          <span>
+            <i className="legend-dot green" />
+            {item === "ebitda" ? "EBITDA" : "Revenue (segment)"}
+          </span>
+
+          <span>
+            <i className="legend-dot blue" />
+            Selected year: {year}
+          </span>
+
+          <div className="segmented-control">
+            {[
+              ["segment_revenue", "Revenue"],
+              ["ebitda", "EBITDA"],
+            ].map(([key, label]) => (
+              <button
+                key={key}
+                className={item === key ? "selected" : ""}
+                onClick={() => setItem(key)}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <PerformanceChart
+          series={series}
+          label={`${region.name} ${item === "ebitda" ? "EBITDA" : "revenue"}`}
+          selectedYear={year}
+        />
+      </div>
+
+      <p className="panel-footnote region-sources">
+        Sources:{" "}
+        {values?.sources?.length ? (
+          values.sources.map((source) => (
+            <a
+              key={`${source.report}-${source.page_label}`}
+              href={source.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              title="Open the report at this page"
+            >
+              {source.report} report, page {source.page_label}
+              <Icon name="external" size={12} />
+            </a>
+          ))
+        ) : (
+          <Missing note={absentNote} />
+        )}
+        {" "}Hover a point for the source of each year. Shares use the group
+        total after inter-segment eliminations, so a loss-making region has a
+        negative EBITDA share.
+      </p>
+    </section>
+  );
+}
+
+/* ---------------------------------------------------------
    Page
    --------------------------------------------------------- */
 
 export default function DashboardPage({ setActivePage, onAskEdith }) {
   const [basis, setBasis] = useState("Consolidated");
-  const [period, setPeriod] = useState("Annual");
+  const [selectedYear, setSelectedYear] = useState(null);
+  const [regionKey, setRegionKey] = useState("all");
   const [activeMetric, setActiveMetric] = useState("revenue_from_operations");
   const [segmentItem, setSegmentItem] = useState("segment_revenue");
 
@@ -381,14 +580,23 @@ export default function DashboardPage({ setActivePage, onAskEdith }) {
   const metrics = useApi(() => getMetrics(scope), `metrics-${scope}`);
   const scores = useApi(() => getScores(scope), `scores-${scope}`);
   const segments = useApi(getSegments, "segments");
-  const reports = useApi(getReports, "reports");
+  const statements = useApi(() => getStatements(scope), `statements-${scope}`);
+  const regions = useApi(getRegions, "regions");
 
-  const latest = lastYear(financials.data?.years || metrics.data?.years);
+  const years = financials.data?.years || metrics.data?.years || FALLBACK_YEARS;
+  const year = selectedYear || lastYear(years);
+  const regionOptions = REGION_KEYS.map((key) =>
+    regions.data?.regions.find((region) => region.key === key),
+  ).filter(Boolean);
+  const region =
+    regionKey === "all" ? null : regionOptions.find((item) => item.key === regionKey);
+
   const activeCard = metricCards.find((card) => card.key === activeMetric);
-  const activeSeries = buildSeries(activeMetric, financials.data, metrics.data);
+  const activeSeries = buildSeries(activeMetric, financials.data, metrics.data, year);
   const activeLoading = activeMetric === "net_debt" ? metrics.loading : financials.loading;
   const activeError = activeMetric === "net_debt" ? metrics.error : financials.error;
   const activeRetry = activeMetric === "net_debt" ? metrics.retry : financials.retry;
+  const selectedCol = (fy) => (fy === year ? "selected-year" : undefined);
 
   return (
     <main className="page inner-page dashboard-page">
@@ -438,22 +646,44 @@ export default function DashboardPage({ setActivePage, onAskEdith }) {
 
         <div className="control-group">
 
-          <label>Period</label>
+          <label htmlFor="dashboard-year">Year</label>
 
-          <div className="segmented-control">
+          <div className="select-control">
+            <select
+              id="dashboard-year"
+              value={year}
+              onChange={(event) => setSelectedYear(event.target.value)}
+            >
+              {years.map((item) => (
+                <option key={item} value={item}>
+                  {item}
+                  {item === COMPARATIVE_YEAR ? " (comparative column)" : ""}
+                </option>
+              ))}
+            </select>
+          </div>
 
-            {["Annual"].map((item) => (
+        </div>
 
-              <button
-                key={item}
-                className={period === item ? "selected" : ""}
-                onClick={() => setPeriod(item)}
-              >
-                {item}
-              </button>
 
-            ))}
+        <div className="control-group">
 
+          <label htmlFor="dashboard-region">Region</label>
+
+          <div className="select-control">
+            <select
+              id="dashboard-region"
+              value={regionKey}
+              onChange={(event) => setRegionKey(event.target.value)}
+              disabled={!regions.data}
+            >
+              <option value="all">All regions</option>
+              {regionOptions.map((item) => (
+                <option key={item.key} value={item.key}>
+                  {item.name}
+                </option>
+              ))}
+            </select>
           </div>
 
         </div>
@@ -461,20 +691,32 @@ export default function DashboardPage({ setActivePage, onAskEdith }) {
 
         <div className="control-note">
           <span className="live-indicator" />
-          Showing {basis.toLowerCase()} view · {period.toLowerCase()} periods
-          {financials.data && ` · ${financials.data.years[0]} to ${latest}`}
+          Showing {basis.toLowerCase()} view · <YearLabel year={year} />
         </div>
 
       </div>
 
+      {regions.error && (
+        <LoadError error={regions.error} onRetry={regions.retry} compact />
+      )}
+
+      {region && regions.data && (
+        <RegionView region={region} years={regions.data.years} year={year} />
+      )}
+
+      {region && (
+        <div className="group-level-row">
+          <GroupLevelNote region={region} />
+        </div>
+      )}
 
       <div className="metric-grid">
 
         {metricCards.map((card) => {
-          const series = buildSeries(card.key, financials.data, metrics.data);
+          const series = buildSeries(card.key, financials.data, metrics.data, year);
           const loading = card.key === "net_debt" ? metrics.loading : financials.loading;
           const failed = card.key === "net_debt" ? metrics.error : financials.error;
-          const latestPoint = series?.points[series.points.length - 1];
+          const point = series?.points.find((item) => item.year === year);
 
           return (
 
@@ -484,7 +726,7 @@ export default function DashboardPage({ setActivePage, onAskEdith }) {
                 activeMetric === card.key ? "metric-active" : ""
               }`}
               onClick={() => setActiveMetric(card.key)}
-              title={latestPoint?.source}
+              title={point?.source}
             >
 
               <div className="metric-card-top">
@@ -499,21 +741,21 @@ export default function DashboardPage({ setActivePage, onAskEdith }) {
 
               {loading ? (
                 <strong className="metric-value-skeleton" />
-              ) : failed || !latestPoint ? (
+              ) : failed || !point ? (
                 <strong className="metric-value">
                   <Value value={null} />
                 </strong>
               ) : (
                 <strong className="metric-value">
                   <small>₹</small>
-                  <Value value={latestPoint.value} restated={latestPoint.restated} />
+                  <Value value={point.value} restated={point.restated} />
                   <small>cr</small>
                 </strong>
               )}
 
               <div className="metric-card-bottom">
                 {loading ? (
-                  <span>Loading {latest || "latest year"}…</span>
+                  <span>Loading {year}…</span>
                 ) : failed ? (
                   <span>Could not load</span>
                 ) : series?.yoy ? (
@@ -528,13 +770,22 @@ export default function DashboardPage({ setActivePage, onAskEdith }) {
                       <RestatedMark note="Compared on a restated basis: the prior year as presented in the latest report." />
                     )}
                   </span>
+                ) : card.key !== "net_debt" && series ? (
+                  <span>
+                    YoY <Missing note={missingChangeNote(year)} />
+                  </span>
                 ) : (
-                  <span>{latestPoint?.year} · 5-year trend</span>
+                  <span>
+                    <YearLabel year={year} /> · 5-year trend
+                  </span>
                 )}
 
                 {card.key === "net_debt" && series ? (
                   <Sparkline
-                    values={series.points.map((point) => point.value)}
+                    values={series.points.map((item) => item.value)}
+                    highlightIndex={series.years.indexOf(year)}
+                    width={72}
+                    height={24}
                     label="Net debt, five-year trend"
                   />
                 ) : (
@@ -569,8 +820,9 @@ export default function DashboardPage({ setActivePage, onAskEdith }) {
             <div>
               <h2>Financial performance</h2>
               <p>
-                {activeCard?.label} · {basis} · {period}
+                {activeCard?.label} · {basis} · {years[0]} to {lastYear(years)}
               </p>
+              <GroupLevelNote region={region} />
             </div>
 
 
@@ -580,16 +832,16 @@ export default function DashboardPage({ setActivePage, onAskEdith }) {
           <div className="chart-legend">
             <span>
               <i className="legend-dot green" />
-              Reported value
+              {activeCard?.label}
             </span>
 
             <span>
               <i className="legend-dot blue" />
-              Latest year{latest ? ` (${latest})` : ""}
+              Selected year: {year}
             </span>
 
             <span className="chart-period-note">
-              INR crore · hover a point for its source
+              INR crore · hover a point for its value and source
             </span>
           </div>
 
@@ -605,7 +857,11 @@ export default function DashboardPage({ setActivePage, onAskEdith }) {
           ) : activeError || !activeSeries ? (
             <LoadError error={activeError} onRetry={activeRetry} compact />
           ) : (
-            <PerformanceChart series={activeSeries} label={activeCard?.label} />
+            <PerformanceChart
+              series={activeSeries}
+              label={activeCard?.label}
+              selectedYear={year}
+            />
           )}
 
         </section>
@@ -618,6 +874,7 @@ export default function DashboardPage({ setActivePage, onAskEdith }) {
             <div>
               <h2>Financial ratios</h2>
               <p>Calculated from verified statement inputs.</p>
+              <GroupLevelNote region={region} />
             </div>
 
             <span className="panel-icon">
@@ -648,16 +905,16 @@ export default function DashboardPage({ setActivePage, onAskEdith }) {
                 const metric = metrics.data.metrics.find((item) => item.key === key);
                 if (!metric) return null;
 
-                const years = metrics.data.years;
-                const values = years.map((year) => metric.values[year] ?? null);
-                const latestValue = values[values.length - 1];
+                const metricYears = metrics.data.years;
+                const values = metricYears.map((fy) => metric.values[fy] ?? null);
+                const selectedValue = metric.values[year] ?? null;
                 const largest = Math.max(
                   ...values.filter((value) => value != null).map(Math.abs),
                 );
                 const width =
-                  latestValue == null || !largest
+                  selectedValue == null || !largest
                     ? 0
-                    : (Math.abs(latestValue) / largest) * 100;
+                    : (Math.abs(selectedValue) / largest) * 100;
 
                 return (
 
@@ -667,7 +924,12 @@ export default function DashboardPage({ setActivePage, onAskEdith }) {
                       <span title={metric.formula}>{metric.name}</span>
                       <strong>
                         <Value
-                          value={latestValue}
+                          value={selectedValue}
+                          missingNote={
+                            year === COMPARATIVE_YEAR
+                              ? "Needs the average of FY2020-21 and FY2021-22 equity; FY2020-21 is outside the four reports"
+                              : "Not reported"
+                          }
                           format={(value) =>
                             formatMetric(value, metric.unit, metric.decimals)
                           }
@@ -677,7 +939,7 @@ export default function DashboardPage({ setActivePage, onAskEdith }) {
 
                     <div className="ratio-track">
                       <i
-                        className={latestValue < 0 ? "negative" : ""}
+                        className={selectedValue < 0 ? "negative" : ""}
                         style={{
                           width: `${width}%`,
                         }}
@@ -686,14 +948,15 @@ export default function DashboardPage({ setActivePage, onAskEdith }) {
 
                     <div className="ratio-footline">
                       <small>
-                        {lastYear(years)} · {metric.higher_is_better ? "higher" : "lower"} is
+                        {year} · {metric.higher_is_better ? "higher" : "lower"} is
                         better
                       </small>
                       <Sparkline
                         values={values}
-                        width={58}
-                        height={16}
-                        label={`${metric.name}, ${years[0]} to ${lastYear(years)}: ${values
+                        highlightIndex={metricYears.indexOf(year)}
+                        width={96}
+                        height={26}
+                        label={`${metric.name}, ${metricYears[0]} to ${lastYear(metricYears)}: ${values
                           .map((value) => formatMetric(value, metric.unit, metric.decimals))
                           .join(", ")}`}
                       />
@@ -708,8 +971,9 @@ export default function DashboardPage({ setActivePage, onAskEdith }) {
 
           {metrics.data && (
             <p className="panel-footnote">
-              Bars compare the latest value with the ratio's own 5-year high;
-              the line shows {metrics.data.years[0]} to {lastYear(metrics.data.years)}.
+              Bars compare the {year} value with the ratio's own 5-year high;
+              the line shows {metrics.data.years[0]} to {lastYear(metrics.data.years)},
+              with {year} marked.
             </p>
           )}
 
@@ -730,6 +994,7 @@ export default function DashboardPage({ setActivePage, onAskEdith }) {
                 {basis} · Altman Z'', Piotroski F and Beneish M for each year,
                 computed from the reported statements.
               </p>
+              <GroupLevelNote region={region} />
             </div>
 
             <span className="panel-icon">
@@ -751,8 +1016,10 @@ export default function DashboardPage({ setActivePage, onAskEdith }) {
                   <thead>
                     <tr>
                       <th scope="col">Score</th>
-                      {scores.data.years.map((year) => (
-                        <th scope="col" key={year}>{year}</th>
+                      {scores.data.years.map((fy) => (
+                        <th scope="col" key={fy} className={selectedCol(fy)}>
+                          <YearLabel year={fy} />
+                        </th>
                       ))}
                     </tr>
                   </thead>
@@ -774,16 +1041,20 @@ export default function DashboardPage({ setActivePage, onAskEdith }) {
                             </small>
                           </th>
 
-                          {scores.data.years.map((year) => {
-                            const result = results[year];
+                          {scores.data.years.map((fy) => {
+                            const result = results[fy];
                             const tone = zoneTone(row.key, result);
 
                             return (
-                              <td key={year}>
+                              <td key={fy} className={selectedCol(fy)}>
                                 {result?.score == null ? (
-                                  <span className="value-missing" title={result?.reason || "Not reported"}>
-                                    —
-                                  </span>
+                                  <Missing
+                                    note={
+                                      fy === COMPARATIVE_YEAR
+                                        ? NEEDS_PRIOR_YEAR_NOTE
+                                        : sentenceCase(result?.reason) || "Not reported"
+                                    }
+                                  />
                                 ) : (
                                   <>
                                     <b>{formatScore(row, result.score)}</b>
@@ -805,7 +1076,10 @@ export default function DashboardPage({ setActivePage, onAskEdith }) {
               <p className="panel-footnote">
                 Altman Z'' uses the actual retained earnings from each report's
                 "Other equity" note (verified on the page) and book equity in
-                place of market value.
+                place of market value. FY2021-22 comes from the FY2022-23
+                report's comparative column; Piotroski F and Beneish M compare
+                with the prior year, so they need FY2020-21, which is outside
+                the four reports.
                 <button
                   type="button"
                   className="text-link"
@@ -828,9 +1102,9 @@ export default function DashboardPage({ setActivePage, onAskEdith }) {
             <div>
               <h2>Financial health summary</h2>
               <p>
-                {basis} · {latest || "latest year"} · values exactly as the
-                API reports them.
+                {basis} · {year} · values exactly as the API reports them.
               </p>
+              <GroupLevelNote region={region} />
             </div>
 
             <span className="panel-icon">
@@ -843,6 +1117,7 @@ export default function DashboardPage({ setActivePage, onAskEdith }) {
             financials={financials}
             metrics={metrics}
             scores={scores}
+            year={year}
           />
 
           <button
@@ -906,8 +1181,10 @@ export default function DashboardPage({ setActivePage, onAskEdith }) {
                         ? "Segment EBITDA (segment results)"
                         : "Segment revenue"}
                     </th>
-                    {segments.data.years.map((year) => (
-                      <th scope="col" key={year}>{year}</th>
+                    {segments.data.years.map((fy) => (
+                      <th scope="col" key={fy} className={selectedCol(fy)}>
+                        <YearLabel year={fy} />
+                      </th>
                     ))}
                   </tr>
                 </thead>
@@ -921,15 +1198,17 @@ export default function DashboardPage({ setActivePage, onAskEdith }) {
                     <tr key={segment.key} className={segment.rowClass || ""}>
                       <th scope="row">{segment.name}</th>
 
-                      {segments.data.years.map((year) => {
-                        const value = segment.values?.[year]?.[segmentItem];
-                        const source = segment.sources?.[year];
-                        const restated = segment.restated?.[year]?.includes(segmentItem);
+                      {segments.data.years.map((fy) => {
+                        const value = segment.values?.[fy]?.[segmentItem];
+                        const source = segment.sources?.[fy];
+                        const restated = segment.restated?.[fy]?.includes(segmentItem);
 
                         return (
                           <td
-                            key={year}
-                            className={value < 0 ? "negative" : ""}
+                            key={fy}
+                            className={[value < 0 ? "negative" : "", selectedCol(fy) || ""]
+                              .join(" ")
+                              .trim() || undefined}
                             title={
                               source && value != null
                                 ? `${source.report} report, page ${source.page_label}`
@@ -940,6 +1219,7 @@ export default function DashboardPage({ setActivePage, onAskEdith }) {
                               value={value}
                               restated={restated}
                               restatedNote={RESTATED_SEGMENT_NOTE}
+                              missingNote="The segment was not reported this year"
                             />
                           </td>
                         );
@@ -954,7 +1234,7 @@ export default function DashboardPage({ setActivePage, onAskEdith }) {
               {segments.data.note} Tata Steel Europe was reported until
               FY2023-24 and is split into Netherlands and UK operations from
               FY2024-25; Tata Steel Long Products (FY2021-22) was merged into
-              Tata Steel India. "—" means the segment was not reported that
+              Tata Steel India. "n/a" means the segment was not reported that
               year. <RestatedMark note={RESTATED_SEGMENT_NOTE} /> marks a
               restated value.
             </p>
@@ -964,96 +1244,78 @@ export default function DashboardPage({ setActivePage, onAskEdith }) {
       </section>
 
 
-      <div className="dashboard-bottom-grid">
+      <section className="dashboard-panel statement-panel statement-panel-full">
 
-        <section className="dashboard-panel statement-panel">
-
-          <div className="panel-heading">
-
-            <div>
-              <h2>Statement coverage</h2>
-              <p>Report sections behind this dashboard, with the annual report PDFs.</p>
-            </div>
-
-
-          </div>
-
-
-          {[
-            ["Income statement", "Revenue, costs, and profit"],
-            ["Balance sheet", "Assets, liabilities, and equity"],
-            [
-              "Cash flow statement",
-              "Operating, investing, and financing cash flows",
-            ],
-          ].map(([name, detail]) => (
-
-            <div className="statement-row" key={name}>
-
-              <span className="statement-icon">
-                <Icon name="file" size={18} />
-              </span>
-
-              <div>
-                <strong>{name}</strong>
-                <small>{detail}</small>
-
-                {reports.data && (
-                  <span className="report-links">
-                    {reports.data.map((report) => (
-                      <a
-                        key={report.fiscal_year}
-                        href={report.pdf_url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        title={report.title}
-                      >
-                        {report.fiscal_year}
-                        <Icon name="external" size={12} />
-                      </a>
-                    ))}
-                  </span>
-                )}
-              </div>
-
-
-            </div>
-
-          ))}
-
-          {reports.error && (
-            <LoadError error={reports.error} onRetry={reports.retry} compact />
-          )}
-
-        </section>
-
-
-        <aside className="dashboard-notice">
-
-          <div className="notice-icon">
-            <Icon name="shield" size={21} />
-          </div>
+        <div className="panel-heading">
 
           <div>
-
-            <h3>Every figure is verified</h3>
-
+            <h2>Statement coverage</h2>
             <p>
-              Figures come from the reported statements. The balance-sheet
-              identity and statement subtotals are checked, restated figures
-              are marked, and every source page is one click away.
+              {basis} primary statements behind this dashboard. Each chip opens
+              only that statement's pages from the annual report.
             </p>
+          </div>
 
-            <div className="notice-footer">
-              <span className="notice-dot" />
-              Source-linked figures only
+
+        </div>
+
+
+        {statementRows.map(([key, name, detail]) => (
+
+          <div className="statement-row" key={key}>
+
+            <span className="statement-icon">
+              <Icon name="file" size={18} />
+            </span>
+
+            <div>
+              <strong>{name}</strong>
+              <small>{detail}</small>
+
+              {statements.data && (
+                <span className="report-links">
+                  {statements.data.years.map((fy) => {
+                    const entry = statements.data.statements[fy]?.[key];
+                    if (!entry) return null;
+
+                    const pages = entry.page_labels.join("-");
+                    const title = `${name}, ${fy} (${scope}): ${entry.report} report, ${
+                      entry.page_labels.length > 1 ? "pages" : "page"
+                    } ${entry.page_labels.join(", ")}${
+                      fy === COMPARATIVE_YEAR ? `. ${COMPARATIVE_NOTE}` : ""
+                    }`;
+
+                    return (
+                      <a
+                        key={fy}
+                        className={selectedCol(fy)}
+                        href={entry.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        title={title}
+                      >
+                        <YearLabel year={fy} />
+                        <em>{pages}</em>
+                        <Icon name="external" size={12} />
+                      </a>
+                    );
+                  })}
+                </span>
+              )}
             </div>
+
 
           </div>
 
-        </aside>
+        ))}
 
-      </div>
+        {statements.loading && <div className="evidence-skeleton wide" />}
+
+        {statements.error && (
+          <LoadError error={statements.error} onRetry={statements.retry} compact />
+        )}
+
+      </section>
 
     </main>
   );
@@ -1063,7 +1325,7 @@ export default function DashboardPage({ setActivePage, onAskEdith }) {
    Financial health summary: a factual list, no narrative
    --------------------------------------------------------- */
 
-function HealthSummary({ financials, metrics, scores }) {
+function HealthSummary({ financials, metrics, scores, year }) {
   if (financials.loading || metrics.loading || scores.loading) {
     return (
       <div className="health-list">
@@ -1089,54 +1351,52 @@ function HealthSummary({ financials, metrics, scores }) {
     );
   }
 
-  const scoreYear = lastYear(scores.data.years);
-  const altman = scores.data.scores.altman_z?.[scoreYear];
-  const piotroski = scores.data.scores.piotroski_f?.[scoreYear];
-  const metricYear = lastYear(metrics.data.years);
+  const altman = scores.data.scores.altman_z?.[year];
+  const piotroski = scores.data.scores.piotroski_f?.[year];
   const metric = (key) => metrics.data.metrics.find((item) => item.key === key);
   const currentRatio = metric("current_ratio");
   const debtToEquity = metric("debt_to_equity");
   const netDebt = metric("net_debt");
   const profit = financials.data.items.profit_for_the_year;
-  const profitYear = lastYear(financials.data.years);
-  const profitChange = profit?.yoy_changes.find((change) => change.to === profitYear);
+  const profitChange = profit?.yoy_changes.find((change) => change.to === year);
 
   const rows = [
     {
-      label: `Altman Z'' (${scoreYear})`,
+      label: `Altman Z'' (${year})`,
       value: altman?.score == null ? null : formatNumber(altman.score, 4),
-      chip: altman && zoneLabel("altman_z", altman),
+      chip: altman?.score != null && zoneLabel("altman_z", altman),
       tone: zoneTone("altman_z", altman),
     },
     {
-      label: `Piotroski F (${scoreYear})`,
+      label: `Piotroski F (${year})`,
       value: piotroski?.score == null ? null : `${piotroski.score}/9`,
       chip: sentenceCase(piotroski?.interpretation),
       tone: zoneTone("piotroski_f", piotroski),
+      missingNote: year === COMPARATIVE_YEAR ? NEEDS_PRIOR_YEAR_NOTE : undefined,
     },
     {
-      label: `Current ratio (${metricYear})`,
-      value: formatMetric(currentRatio?.values[metricYear], "x", currentRatio?.decimals),
-      raw: currentRatio?.values[metricYear],
+      label: `Current ratio (${year})`,
+      value: formatMetric(currentRatio?.values[year], "x", currentRatio?.decimals),
+      raw: currentRatio?.values[year],
     },
     {
-      label: `Debt-to-equity (${metricYear})`,
-      value: formatMetric(debtToEquity?.values[metricYear], "x", debtToEquity?.decimals),
-      raw: debtToEquity?.values[metricYear],
+      label: `Debt-to-equity (${year})`,
+      value: formatMetric(debtToEquity?.values[year], "x", debtToEquity?.decimals),
+      raw: debtToEquity?.values[year],
     },
     {
-      label: `Net debt (${metricYear})`,
+      label: `Net debt (${year})`,
       value:
-        netDebt?.values[metricYear] == null
+        netDebt?.values[year] == null
           ? null
-          : `₹ ${formatCrore(netDebt.values[metricYear])} cr`,
+          : `₹ ${formatCrore(netDebt.values[year])} cr`,
     },
     {
-      label: `Profit for the year (${profitYear})`,
+      label: `Profit for the year (${year})`,
       value:
-        profit?.values[profitYear]?.value == null
+        profit?.values[year]?.value == null
           ? null
-          : `₹ ${formatCrore(profit.values[profitYear].value)} cr`,
+          : `₹ ${formatCrore(profit.values[year].value)} cr`,
       chip: profitChange && `${formatChangePct(profitChange.change_pct)} YoY`,
       tone: profitChange ? (profitChange.change_pct < 0 ? "distress" : "safe") : null,
     },
@@ -1149,7 +1409,7 @@ function HealthSummary({ financials, metrics, scores }) {
           <span>{row.label}</span>
           <strong>
             {row.value == null || ("raw" in row && row.raw == null) ? (
-              <Value value={null} />
+              <Missing note={row.missingNote || "Not reported"} />
             ) : (
               row.value
             )}
