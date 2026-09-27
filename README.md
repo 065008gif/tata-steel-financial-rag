@@ -51,7 +51,7 @@ Dockerfile, docker-compose.yml, requirements-api.txt
 ## Running
 
 **Prerequisites:** Docker with Compose, and an Ollama Cloud API key in `.env`:
-OLLAMA_API_KEY=your_ollama_cloud_key_here
+OLLAMA_API_KEY=your_key_here
 
 **Backend (Qdrant + API):**
 docker compose up -d --build qdrant backend
