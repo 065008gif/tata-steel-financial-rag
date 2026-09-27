@@ -6,7 +6,7 @@ single-year lookups, multi-year trends, ratio computations, year-over-year compa
 results, risk and narrative questions, and an overall financial-health verdict — citing the report, statement and page
 for every figure, verifying every number against the source data, and refusing questions the reports cannot answer.
 
-**Team:** Backend — Akshit Kansal · Frontend — teammate (see `frontend/`)
+**Team:** Backend — Akshit Kansal · Frontend — Divisha Agarwal ("Edith" React app in `frontend/`)
 
 ## Results (final evaluation, 32 questions — details in `eval/EVALUATION_NOTES.md`)
 
@@ -59,7 +59,17 @@ curl http://localhost:8000/api/health
 **Full stack with the frontend and a public Cloudflare quick tunnel** (after the frontend is merged):
 docker compose --profile full up -d --build
 docker compose logs tunnel | grep trycloudflare.com # the public URL
-**Stop (and remove containers, which hold the API key):** `docker compose down`
+**Stop everything (containers hold the API key; the tunnel is public while running):** `docker compose --profile full down`
+
+### The deployed app
+`docker compose --profile full up -d --build` builds the frontend for production (Vite build served by nginx, which
+proxies `/api/` to the backend with a 300 s timeout) and starts four containers: `qdrant`, `backend`, `frontend`
+(http://localhost:8080) and `tunnel` (a Cloudflare quick tunnel; its public `https://*.trycloudflare.com` URL is printed by
+`docker compose logs tunnel`). The frontend has five pages: **Home** (live KPIs by year, company facts, example questions),
+**Ask Edith** (chat with follow-ups; every answer shows its verification status, page citations that open the local PDF,
+and the steps used), **Dashboard** (year, basis and region filters; metrics, ratios, composite scores, segments, regions,
+statement-only PDFs), **Evaluation** (the latest full run) and **Sources** (the four reports, method, limitations).
+PDFs are served from the backend's local copies (`/api/pdf/...`), because tatasteel.com blocks deep links.
 
 **Local development without Docker:** Python 3.11 environment, `pip install -r requirements-api.txt`, a running Qdrant on
 `localhost:6333`, then `uvicorn main:app --app-dir src/api --port 8000`.

@@ -43,3 +43,18 @@ and left one blank cell out rather than guessing. 60 tests pass. New `get_segmen
 **Independent verification:** four values located directly on pages of four different reports (e.g. India FY2021-22
 51,456.30; Europe FY2023-24 (7,612.44)); the combined latest-report view reconciles to the printed total for all five years;
 tests re-run (60/60); the live endpoint checked after a container rebuild.
+
+## Tasks 04-07 — the frontend, built on the teammate's design
+The teammate's "Edith" React app was a polished but static prototype (no API calls). Claude Code connected and completed
+it in four briefs, each with Rule 1: preserve her design, reuse her classes and variables, append CSS, change only what
+the brief lists. Every task was checked with headless-Chrome screenshots, `npm run build` and `npm run lint`.
+- **Task 04:** API client and proxy; chat with verification badges, citations and steps; live dashboard (metrics, chart,
+  ratios, composite scores, segments); real evaluation page; new Sources page; Dockerfile and nginx config.
+- **Task 05 (backend, from the UI review):** local PDF serving (tatasteel.com returned 403), statement-only PDFs, FY2021-22
+  Altman, regions, page-verified company facts, a `dupont` tool and stricter grounding (calculator inputs no longer count
+  as verified; this exposed a sign error in the EBITDA-margin answer, since fixed).
+- **Task 06:** 33 review items: year and region filters, FY2021-22 explained everywhere, no em dashes, readability.
+- **Task 07:** measured readability: a font-size audit of 3,003 text nodes found 2,796 below the minimum at 1366x768;
+  after the changes, 0 at both 1366x768 and 1920x1080. Full-height chat layout; every missing value shows its reason.
+**Independent verification** throughout: re-run tests, on-screen review by the team, and the full 32-question evaluation
+(24/24 numeric, 60/60 numbers, 32/32 abstention, 31/32 grounded).
