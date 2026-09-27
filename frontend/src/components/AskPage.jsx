@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { COVERAGE_TEXT, Icon, StatusPill } from "./ui.jsx";
@@ -317,10 +317,25 @@ export default function AskPage({ setActivePage, chat }) {
   const isPending = turns.some((turn) => turn.status === "pending");
   const lastTurn = turns[turns.length - 1];
 
+  // The app area fills the viewport below the sticky header.
+  useLayoutEffect(() => {
+    const header = document.querySelector(".site-header");
+    if (!header) return undefined;
+
+    const root = document.documentElement;
+    const update = () =>
+      root.style.setProperty("--site-header-h", `${header.offsetHeight}px`);
+    update();
+
+    const observer = new ResizeObserver(update);
+    observer.observe(header);
+    return () => observer.disconnect();
+  }, []);
+
   // Keep the newest message in view.
   useEffect(() => {
     const element = chatContentRef.current;
-    if (!element) return;
+    if (!element || turns.length === 0) return;
     element.scrollTo({ top: element.scrollHeight, behavior: "smooth" });
   }, [activeId, turns.length, lastTurn?.status]);
 
@@ -345,21 +360,6 @@ export default function AskPage({ setActivePage, chat }) {
 
   return (
     <main className="page inner-page ask-page">
-      <div className="page-title-row">
-        <div>
-          <div className="page-overline">
-            Tata Steel report assistant
-          </div>
-
-          <h1>Ask Edith</h1>
-
-          <p>
-            Ask about Tata Steel's financial reports and inspect the evidence
-            that would support an answer.
-          </p>
-        </div>
-      </div>
-
       <div
         className={`ask-layout ${
           sidebarCollapsed ? "sidebar-collapsed" : ""
@@ -495,135 +495,155 @@ export default function AskPage({ setActivePage, chat }) {
           </div>
         </aside>
 
-        <section className="chat-panel">
-          <div className="chat-panel-header">
-            <div className="chat-avatar">E</div>
+        <div className="ask-main">
+          <div className="page-title-row">
+            <div>
+              <div className="page-overline">
+                Tata Steel report assistant
+              </div>
 
-            <div className="chat-header-copy">
-              <strong>Edith</strong>
-              <span>Report research assistant</span>
+              <h1>Ask Edith</h1>
+
+              <p>
+                Ask about Tata Steel's financial reports and inspect the evidence
+                that would support an answer.
+              </p>
             </div>
           </div>
 
-          <div className="chat-content" ref={chatContentRef}>
-            {turns.length === 0 ? (
-              <div className="welcome-message">
-                <div className="welcome-icon">
-                  <Icon name="spark" size={24} />
-                </div>
+          <section className="chat-panel">
+            <div className="chat-panel-header">
+              <div className="chat-avatar">E</div>
 
-                <div>
-                  <h2>Hello, I'm Edith.</h2>
-
-                  <p>
-                    Ask a question about Tata Steel's financial reports.
-                    I'll look up the reported figures, work out what the
-                    question needs, and show the pages each figure comes
-                    from.
-                  </p>
-
-                  <div className="welcome-callout">
-                    <Icon name="book" size={18} />
-
-                    <ul>
-                      <li>
-                        {COVERAGE_TEXT} Consolidated and standalone.
-                      </li>
-                      <li>
-                        Every figure in an answer is checked against its
-                        source and cited to the report page.
-                      </li>
-                      <li>
-                        Follow-up questions work, e.g. “{FOLLOW_UP_EXAMPLE}”
-                        after a lookup.
-                      </li>
-                      <li>Answers usually take 10-60 seconds.</li>
-                    </ul>
-                  </div>
-                </div>
+              <div className="chat-header-copy">
+                <strong>Edith</strong>
+                <span>Report research assistant</span>
               </div>
-            ) : (
-              <div className="conversation">
-                {turns.map((turn) => (
-                  <div className="conversation-turn" key={turn.id}>
-                    <div className="user-message">
-                      <span>You</span>
-                      <p>{turn.question}</p>
+            </div>
+
+            <div className="chat-content" ref={chatContentRef}>
+              {turns.length === 0 ? (
+                <div className="welcome-message">
+                  <div className="welcome-icon">
+                    <Icon name="spark" size={24} />
+                  </div>
+
+                  <div>
+                    <h2>Hello, I'm Edith.</h2>
+
+                    <p>
+                      Ask a question about Tata Steel's financial reports.
+                      I'll look up the reported figures, work out what the
+                      question needs, and show the pages each figure comes
+                      from.
+                    </p>
+
+                    <div className="welcome-callout">
+                      <Icon name="book" size={18} />
+
+                      <ul>
+                        <li>
+                          {COVERAGE_TEXT} Consolidated and standalone.
+                        </li>
+                        <li>
+                          Every figure in an answer is checked against its
+                          source and cited to the report page.
+                        </li>
+                        <li>
+                          Follow-up questions work, e.g. “{FOLLOW_UP_EXAMPLE}”
+                          after a lookup.
+                        </li>
+                        <li>
+                          Answers usually take 10-60 seconds; the first
+                          question may take 2-3 minutes.
+                        </li>
+                      </ul>
                     </div>
-
-                    {turn.status === "pending" && (
-                      <PendingAnswer
-                        turn={turn}
-                        onCancel={() => chat.cancel(turn.id)}
-                      />
-                    )}
-
-                    {turn.status === "error" && (
-                      <ErrorAnswer
-                        turn={turn}
-                        onRetry={() => chat.retry(active.id, turn.id)}
-                      />
-                    )}
-
-                    {turn.status === "done" && turn.response && (
-                      <AnswerMessage response={turn.response} />
-                    )}
                   </div>
-                ))}
-              </div>
-            )}
-          </div>
+                </div>
+              ) : (
+                <div className="conversation">
+                  {turns.map((turn) => (
+                    <div className="conversation-turn" key={turn.id}>
+                      <div className="user-message">
+                        <span>You</span>
+                        <p>{turn.question}</p>
+                      </div>
 
-          <form
-            className="chat-composer"
-            onSubmit={(event) => {
-              event.preventDefault();
-              askQuestion();
-            }}
-          >
-            <textarea
-              ref={textareaRef}
-              value={question}
-              onChange={(event) => setQuestion(event.target.value)}
-              onKeyDown={(event) => {
-                if (
-                  event.key === "Enter" &&
-                  !event.shiftKey &&
-                  !event.nativeEvent.isComposing
-                ) {
-                  event.preventDefault();
-                  askQuestion();
-                }
-              }}
-              placeholder={
-                turns.length > 0
-                  ? "Ask a follow-up question…"
-                  : "Ask about Tata Steel's financial reports…"
-              }
-              rows={2}
-              maxLength={2000}
-              aria-label="Ask a question"
-            />
+                      {turn.status === "pending" && (
+                        <PendingAnswer
+                          turn={turn}
+                          onCancel={() => chat.cancel(turn.id)}
+                        />
+                      )}
 
-            <div className="composer-bottom">
-              <span>
-                <span className="composer-lock">
-                  <Icon name="shield" size={13} />
-                </span>
-                Answers are verified against the source pages
-              </span>
+                      {turn.status === "error" && (
+                        <ErrorAnswer
+                          turn={turn}
+                          onRetry={() => chat.retry(active.id, turn.id)}
+                        />
+                      )}
 
-              <button
-                type="submit"
-                className="button button-primary"
-                disabled={!question.trim() || isPending}
-              >
-                Send
-                <Icon name="arrow" size={16} />
-              </button>
+                      {turn.status === "done" && turn.response && (
+                        <AnswerMessage response={turn.response} />
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
-          </form>
-        </section>
+
+            <form
+              className="chat-composer"
+              onSubmit={(event) => {
+                event.preventDefault();
+                askQuestion();
+              }}
+            >
+              <textarea
+                ref={textareaRef}
+                value={question}
+                onChange={(event) => setQuestion(event.target.value)}
+                onKeyDown={(event) => {
+                  if (
+                    event.key === "Enter" &&
+                    !event.shiftKey &&
+                    !event.nativeEvent.isComposing
+                  ) {
+                    event.preventDefault();
+                    askQuestion();
+                  }
+                }}
+                placeholder={
+                  turns.length > 0
+                    ? "Ask a follow-up question…"
+                    : "Ask about Tata Steel's financial reports…"
+                }
+                rows={2}
+                maxLength={2000}
+                aria-label="Ask a question"
+              />
+
+              <div className="composer-bottom">
+                <span>
+                  <span className="composer-lock">
+                    <Icon name="shield" size={13} />
+                  </span>
+                  Answers are verified against the source pages
+                </span>
+
+                <button
+                  type="submit"
+                  className="button button-primary"
+                  disabled={!question.trim() || isPending}
+                >
+                  Send
+                  <Icon name="arrow" size={16} />
+                </button>
+              </div>
+            </form>
+          </section>
+        </div>
       </div>
 
       <div className="ask-page-links">

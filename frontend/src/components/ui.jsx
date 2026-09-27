@@ -154,7 +154,7 @@ export function SectionHeading({ eyebrow, title, description, action }) {
 const MINUS = "−";
 
 export function formatNumber(value, decimals = 2) {
-  if (value == null || Number.isNaN(value)) return "n/a";
+  if (value == null || Number.isNaN(value)) return "not in the reports";
   const text = Math.abs(value).toLocaleString("en-IN", {
     minimumFractionDigits: decimals,
     maximumFractionDigits: decimals,
@@ -169,13 +169,13 @@ export function formatCrore(value) {
 
 /** A percentage change exactly as the API gives it, e.g. +6.22% */
 export function formatChangePct(value) {
-  if (value == null) return "n/a";
+  if (value == null) return "not in the reports";
   return `${value > 0 ? "+" : ""}${formatNumber(value, 2)}%`;
 }
 
 /** A metric from /api/metrics with its unit and the API's decimals. */
 export function formatMetric(value, unit, decimals = 2) {
-  if (value == null) return "n/a";
+  if (value == null) return "not in the reports";
   if (unit === "x") return `${formatNumber(value, decimals)}x`;
   if (unit === "%") return `${formatNumber(value, decimals)}%`;
   return formatNumber(value, decimals);
@@ -214,15 +214,16 @@ export function RestatedMark({
   );
 }
 
-/** A value, or "n/a" with a tooltip (default "Not reported") when it is null. */
+/** A value, or a short grey reason (tooltip adds detail) when it is null. */
 export function Value({
   value,
   format = formatCrore,
   restated = false,
   restatedNote,
-  missingNote = "Not reported",
+  missingReason = REASON.notInReports,
+  missingNote,
 }) {
-  if (value == null) return <Missing note={missingNote} />;
+  if (value == null) return <Missing reason={missingReason} note={missingNote} />;
 
   return (
     <>
@@ -232,11 +233,23 @@ export function Value({
   );
 }
 
-/** "n/a" with a tooltip explaining why the value is missing. */
-export function Missing({ note = "Not reported" }) {
+/* Short reasons shown in grey in place of a missing value. */
+export const REASON = {
+  notInReports: "Not in the reports",
+  noPriorYear: "No FY2020-21 data",
+  needsPriorYear: "Needs FY2020-21 data",
+  withinEurope: "Reported within Europe then",
+  splitEurope: "Split into Netherlands and UK",
+  mergedIntoIndia: "Merged into Tata Steel India",
+  notASegment: "Not a segment that year",
+  nothingToCheck: "Nothing to check",
+};
+
+/** A short grey reason in place of a missing value; the tooltip may add detail. */
+export function Missing({ reason = REASON.notInReports, note }) {
   return (
-    <span className="value-missing" title={note} aria-label={`n/a: ${note}`}>
-      n/a
+    <span className="value-missing missing-reason" title={note || reason}>
+      {reason}
     </span>
   );
 }

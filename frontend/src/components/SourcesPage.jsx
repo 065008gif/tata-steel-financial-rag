@@ -247,18 +247,31 @@ export default function SourcesPage({ setActivePage }) {
 
             <h2>Composite scores</h2>
 
-            <p>
-              Altman Z'' (book-equity variant), Piotroski F and Beneish M are
-              computed in code from the verified statements, consolidated and
-              standalone, FY2021-22 to FY2025-26 (FY2021-22 from the
-              FY2022-23 report's comparative column; Piotroski F and Beneish
-              M need FY2020-21, so they start in FY2022-23). Altman X2 uses the actual
-              retained earnings from each report's "Other equity" note, each
-              value verified on its page. Disclosed proxies: X4 uses book equity
-              instead of market value (not in the reports) and EBIT is taken as
-              profit before tax plus finance costs. Piotroski and Beneish compare
-              each year with the prior year as presented in the same report.
-            </p>
+            <ul className="methodology-points">
+              <li>
+                Altman Z'' (book-equity variant), Piotroski F and Beneish M are
+                computed in code from the verified statements, consolidated and
+                standalone, FY2021-22 to FY2025-26.
+              </li>
+              <li>
+                FY2021-22 from the FY2022-23 report's comparative column;
+                Piotroski F and Beneish M need FY2020-21, so they start in
+                FY2022-23.
+              </li>
+              <li>
+                Altman X2 uses the actual retained earnings from each report's
+                "Other equity" note, each value verified on its page.
+              </li>
+              <li>
+                Disclosed proxies: X4 uses book equity instead of market value
+                (not in the reports) and EBIT is taken as profit before tax plus
+                finance costs.
+              </li>
+              <li>
+                Piotroski and Beneish compare each year with the prior year as
+                presented in the same report.
+              </li>
+            </ul>
 
           </div>
 
@@ -275,15 +288,22 @@ export default function SourcesPage({ setActivePage }) {
 
             <h2>Segments</h2>
 
-            <p>
-              Segment revenue and segment results (segment EBITDA: before
-              exceptional items, interest, tax and depreciation) come from the
-              consolidated "Segment reporting" note of each report. Every value
-              is checked on its page, segments plus eliminations reconcile to
-              the printed total, and restated values are marked. Tata Steel
-              Europe is split into Netherlands and UK operations from FY2024-25,
-              and Tata Steel Long Products was merged into Tata Steel India.
-            </p>
+            <ul className="methodology-points">
+              <li>
+                Segment revenue and segment results (segment EBITDA: before
+                exceptional items, interest, tax and depreciation) come from the
+                consolidated "Segment reporting" note of each report.
+              </li>
+              <li>
+                Every value is checked on its page, segments plus eliminations
+                reconcile to the printed total, and restated values are marked.
+              </li>
+              <li>
+                Tata Steel Europe is split into Netherlands and UK operations
+                from FY2024-25, and Tata Steel Long Products was merged into Tata
+                Steel India.
+              </li>
+            </ul>
 
           </div>
 

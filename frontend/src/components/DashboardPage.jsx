@@ -15,6 +15,7 @@ import {
   LoadError,
   Missing,
   NEEDS_PRIOR_YEAR_NOTE,
+  REASON,
   RestatedMark,
   Sparkline,
   Value,
@@ -101,8 +102,27 @@ function lastYear(years) {
 }
 
 /** Why a year-on-year change is missing: FY2021-22 has no prior year. */
-function missingChangeNote(year) {
-  return year === COMPARATIVE_YEAR ? NEEDS_PRIOR_YEAR_NOTE : "Not reported";
+function missingChange(year) {
+  return year === COMPARATIVE_YEAR
+    ? { reason: REASON.noPriorYear, note: NEEDS_PRIOR_YEAR_NOTE }
+    : { reason: REASON.notInReports };
+}
+
+// Europe was split into Netherlands and UK operations from this year.
+const EUROPE_SPLIT_YEAR = "FY2024-25";
+
+/** Why a segment has no value in a year (fiscal-year labels sort as text). */
+function missingSegmentReason(segmentKey, year) {
+  const beforeSplit = year < EUROPE_SPLIT_YEAR;
+
+  if (["tata_steel_netherlands", "tata_steel_uk"].includes(segmentKey) && beforeSplit) {
+    return REASON.withinEurope;
+  }
+  if (segmentKey === "tata_steel_europe" && !beforeSplit) return REASON.splitEurope;
+  if (segmentKey === "tata_steel_long_products" && year > COMPARATIVE_YEAR) {
+    return REASON.mergedIntoIndia;
+  }
+  return REASON.notASegment;
 }
 
 /** The small "Group-level only" note shown while a region is selected. */
@@ -427,10 +447,40 @@ function regionYearsText(region, years) {
     : `${present[0]} to ${present[present.length - 1]}`;
 }
 
-function RegionView({ region, years, year }) {
+/** Where a region's figures are when it was not reported in a year. */
+function regionAbsence(region, year) {
+  const beforeSplit = year < EUROPE_SPLIT_YEAR;
+  const until = "FY2023-24";
+
+  if (region.key === "uk" && beforeSplit) {
+    return {
+      text: `The UK was reported within Tata Steel Europe until ${until}`,
+      links: [["europe", "Europe"]],
+    };
+  }
+  if (region.key === "netherlands" && beforeSplit) {
+    return {
+      text: `The Netherlands was reported within Tata Steel Europe until ${until}`,
+      links: [["europe", "Europe"]],
+    };
+  }
+  if (region.key === "europe" && !beforeSplit) {
+    return {
+      text: `Tata Steel Europe is reported as Netherlands and UK operations from ${EUROPE_SPLIT_YEAR}`,
+      links: [
+        ["netherlands", "Netherlands"],
+        ["uk", "UK"],
+      ],
+    };
+  }
+  return { text: `${region.name} is not a segment in ${year}`, links: [] };
+}
+
+function RegionView({ region, years, year, onSelectRegion }) {
   const [item, setItem] = useState("segment_revenue");
   const values = region.values[year];
   const absentNote = `${region.name} is reported only for ${regionYearsText(region, years)}`;
+  const absence = values ? null : regionAbsence(region, year);
   const pct = (value) => (value == null ? null : `${formatNumber(value, 2)}%`);
 
   const stats = [
@@ -483,6 +533,28 @@ function RegionView({ region, years, year }) {
         </span>
       </div>
 
+      {absence ? (
+        <div className="region-absent" role="note">
+          <Icon name="layers" size={18} />
+          <span>{absence.text}.</span>
+
+          {absence.links.length > 0 && (
+            <span className="region-absent-actions">
+              {absence.links.map(([key, name]) => (
+                <button
+                  key={key}
+                  type="button"
+                  className="button button-secondary"
+                  onClick={() => onSelectRegion(key)}
+                >
+                  View {name} for {year}
+                  <Icon name="arrow" size={15} />
+                </button>
+              ))}
+            </span>
+          )}
+        </div>
+      ) : (
       <div className="region-stats">
         {stats.map((stat) => (
           <div className="region-stat" key={stat.label} title={stat.note}>
@@ -501,6 +573,7 @@ function RegionView({ region, years, year }) {
           </div>
         ))}
       </div>
+      )}
 
       <div className="region-trend">
         <div className="chart-legend">
@@ -538,8 +611,8 @@ function RegionView({ region, years, year }) {
       </div>
 
       <p className="panel-footnote region-sources">
-        Sources:{" "}
-        {values?.sources?.length ? (
+        {values?.sources?.length > 0 && "Sources: "}
+        {values?.sources?.length > 0 &&
           values.sources.map((source) => (
             <a
               key={`${source.report}-${source.page_label}`}
@@ -551,11 +624,8 @@ function RegionView({ region, years, year }) {
               {source.report} report, page {source.page_label}
               <Icon name="external" size={12} />
             </a>
-          ))
-        ) : (
-          <Missing note={absentNote} />
-        )}
-        {" "}Hover a point for the source of each year. Shares use the group
+          ))}
+        {values?.sources?.length > 0 && " "}Hover a point for the source of each year. Shares use the group
         total after inter-segment eliminations, so a loss-making region has a
         negative EBITDA share.
       </p>
@@ -701,7 +771,12 @@ export default function DashboardPage({ setActivePage, onAskEdith }) {
       )}
 
       {region && regions.data && (
-        <RegionView region={region} years={regions.data.years} year={year} />
+        <RegionView
+          region={region}
+          years={regions.data.years}
+          year={year}
+          onSelectRegion={setRegionKey}
+        />
       )}
 
       {region && (
@@ -772,7 +847,7 @@ export default function DashboardPage({ setActivePage, onAskEdith }) {
                   </span>
                 ) : card.key !== "net_debt" && series ? (
                   <span>
-                    YoY <Missing note={missingChangeNote(year)} />
+                    YoY <Missing {...missingChange(year)} />
                   </span>
                 ) : (
                   <span>
@@ -925,10 +1000,13 @@ export default function DashboardPage({ setActivePage, onAskEdith }) {
                       <strong>
                         <Value
                           value={selectedValue}
+                          missingReason={
+                            year === COMPARATIVE_YEAR ? REASON.noPriorYear : REASON.notInReports
+                          }
                           missingNote={
                             year === COMPARATIVE_YEAR
                               ? "Needs the average of FY2020-21 and FY2021-22 equity; FY2020-21 is outside the four reports"
-                              : "Not reported"
+                              : undefined
                           }
                           format={(value) =>
                             formatMetric(value, metric.unit, metric.decimals)
@@ -1049,10 +1127,15 @@ export default function DashboardPage({ setActivePage, onAskEdith }) {
                               <td key={fy} className={selectedCol(fy)}>
                                 {result?.score == null ? (
                                   <Missing
+                                    reason={
+                                      fy === COMPARATIVE_YEAR && row.key !== "altman_z"
+                                        ? REASON.needsPriorYear
+                                        : REASON.notInReports
+                                    }
                                     note={
                                       fy === COMPARATIVE_YEAR
                                         ? NEEDS_PRIOR_YEAR_NOTE
-                                        : sentenceCase(result?.reason) || "Not reported"
+                                        : sentenceCase(result?.reason)
                                     }
                                   />
                                 ) : (
@@ -1219,7 +1302,7 @@ export default function DashboardPage({ setActivePage, onAskEdith }) {
                               value={value}
                               restated={restated}
                               restatedNote={RESTATED_SEGMENT_NOTE}
-                              missingNote="The segment was not reported this year"
+                              missingReason={missingSegmentReason(segment.key, fy)}
                             />
                           </td>
                         );
@@ -1234,8 +1317,8 @@ export default function DashboardPage({ setActivePage, onAskEdith }) {
               {segments.data.note} Tata Steel Europe was reported until
               FY2023-24 and is split into Netherlands and UK operations from
               FY2024-25; Tata Steel Long Products (FY2021-22) was merged into
-              Tata Steel India. "n/a" means the segment was not reported that
-              year. <RestatedMark note={RESTATED_SEGMENT_NOTE} /> marks a
+              Tata Steel India. A grey note replaces the value where a segment was
+              not reported that year. <RestatedMark note={RESTATED_SEGMENT_NOTE} /> marks a
               restated value.
             </p>
           </>
@@ -1372,6 +1455,7 @@ function HealthSummary({ financials, metrics, scores, year }) {
       value: piotroski?.score == null ? null : `${piotroski.score}/9`,
       chip: sentenceCase(piotroski?.interpretation),
       tone: zoneTone("piotroski_f", piotroski),
+      missingReason: year === COMPARATIVE_YEAR ? REASON.needsPriorYear : undefined,
       missingNote: year === COMPARATIVE_YEAR ? NEEDS_PRIOR_YEAR_NOTE : undefined,
     },
     {
@@ -1409,7 +1493,7 @@ function HealthSummary({ financials, metrics, scores, year }) {
           <span>{row.label}</span>
           <strong>
             {row.value == null || ("raw" in row && row.raw == null) ? (
-              <Missing note={row.missingNote || "Not reported"} />
+              <Missing reason={row.missingReason} note={row.missingNote} />
             ) : (
               row.value
             )}

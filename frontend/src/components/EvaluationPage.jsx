@@ -1,6 +1,14 @@
 import { useState } from "react";
 import { getEvaluation } from "../api.js";
-import { Icon, LoadError, SectionHeading, formatRunDate, useApi } from "./ui.jsx";
+import {
+  Icon,
+  LoadError,
+  Missing,
+  REASON,
+  SectionHeading,
+  formatRunDate,
+  useApi,
+} from "./ui.jsx";
 
 /* =========================================================
    EVALUATION
@@ -67,7 +75,7 @@ function ratioOf(fraction) {
 }
 
 function formatRate(value) {
-  return typeof value === "number" ? value.toFixed(2) : "n/a";
+  return typeof value === "number" ? value.toFixed(2) : "not recorded";
 }
 
 export default function EvaluationPage() {
@@ -97,7 +105,7 @@ export default function EvaluationPage() {
         "Compare extracted values with reviewed reference answers.",
       icon: "chart",
       value: summary.numeric_questions_fully_correct,
-      detail: `numeric questions fully correct · ${summary.expected_numbers_found || "n/a"} expected numbers found`,
+      detail: `numeric questions fully correct · ${summary.expected_numbers_found || "not recorded"} expected numbers found`,
     },
     {
       title: "Citation correctness",
@@ -121,7 +129,7 @@ export default function EvaluationPage() {
         "Measure whether relevant passages are found for each question.",
       icon: "search",
       value: `${formatRate(retrieval["hit_rate@4"])} / ${formatRate(retrieval.mrr)}`,
-      detail: `Hit Rate@4 / MRR · source pages retrieved: ${summary.source_pages_retrieved || "n/a"}`,
+      detail: `Hit Rate@4 / MRR · source pages retrieved: ${summary.source_pages_retrieved || "not recorded"}`,
     },
     {
       title: "Abstention",
@@ -190,7 +198,7 @@ export default function EvaluationPage() {
 
             <div className="gauge-center">
               <strong title={headline ? undefined : "No evaluation run is available yet"}>
-                {headline || "n/a"}
+                {headline || <Missing reason="No run yet" />}
               </strong>
               <span>Numeric</span>
             </div>
@@ -287,7 +295,7 @@ export default function EvaluationPage() {
                 className="measure-value"
                 title={available && measure.value ? undefined : "No score recorded in the latest run"}
               >
-                {available ? measure.value || "n/a" : "n/a"}
+                {available && measure.value ? measure.value : <Missing reason="Not recorded" />}
               </strong>
 
               <small className="measure-definition">
@@ -396,13 +404,13 @@ export default function EvaluationPage() {
                       <b>{record.id}</b> {record.question}
                     </span>
                     <span title={record.numeric ? undefined : "No figures to check for this question"}>
-                      {record.numeric || "n/a"}
+                      {record.numeric || <Missing reason={REASON.nothingToCheck} />}
                     </span>
                     <span title={record.citation ? undefined : "No citation check for this question"}>
-                      {record.citation || "n/a"}
+                      {record.citation || <Missing reason={REASON.nothingToCheck} />}
                     </span>
                     <span className={isFull(record.grounded) ? "result-pass" : "result-partial"}>
-                      {record.grounded || "n/a"}
+                      {record.grounded || <Missing reason={REASON.nothingToCheck} />}
                     </span>
                     <span>{record.seconds} s</span>
                   </div>
