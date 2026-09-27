@@ -1585,5 +1585,94 @@
   ],
   "expected_sources": [],
   "note": ""
+ },
+ {
+  "id": "J1",
+  "category": "follow_up",
+  "question": "And in FY2023-24?",
+  "expected_numbers": [
+   0.7165
+  ],
+  "inputs": [
+   {
+    "item": "total_current_assets",
+    "fiscal_year": "FY2023-24",
+    "scope": "consolidated",
+    "value": 70503.59,
+    "report": "FY2024-25",
+    "pdf_page": 404,
+    "page_label": "F150",
+    "components": null
+   },
+   {
+    "item": "total_current_liabilities",
+    "fiscal_year": "FY2023-24",
+    "scope": "consolidated",
+    "value": 98403.48,
+    "report": "FY2024-25",
+    "pdf_page": 405,
+    "page_label": "F151",
+    "components": null
+   }
+  ],
+  "must_abstain": false,
+  "must_mention": [],
+  "expected_sources": [],
+  "note": "",
+  "history": [
+   {
+    "role": "user",
+    "content": "What was Tata Steel's consolidated current ratio in FY2025-26?"
+   },
+   {
+    "role": "assistant",
+    "content": "Tata Steel's consolidated current ratio in FY2025-26 was 0.75x (total current assets 72,265.11 / total current liabilities 96,917.64 INR crore; FY2025-26 AR, p. F142-F143)."
+   }
+  ]
+ },
+ {
+  "id": "J2",
+  "category": "follow_up",
+  "question": "How much did it grow compared with the previous year, in crore and percent?",
+  "expected_numbers": [
+   13597.43,
+   6.2219
+  ],
+  "inputs": [
+   {
+    "item": "revenue_from_operations",
+    "fiscal_year": "FY2024-25",
+    "scope": "consolidated",
+    "value": 218542.51,
+    "report": "FY2025-26",
+    "pdf_page": 422,
+    "page_label": "F144",
+    "components": null
+   },
+   {
+    "item": "revenue_from_operations",
+    "fiscal_year": "FY2025-26",
+    "scope": "consolidated",
+    "value": 232139.94,
+    "report": "FY2025-26",
+    "pdf_page": 422,
+    "page_label": "F144",
+    "components": null
+   }
+  ],
+  "must_abstain": false,
+  "must_mention": [],
+  "expected_sources": [],
+  "note": "",
+  "history": [
+   {
+    "role": "user",
+    "content": "What was Tata Steel's consolidated revenue from operations in FY2025-26?"
+   },
+   {
+    "role": "assistant",
+    "content": "Consolidated revenue from operations in FY2025-26 was INR 2,32,139.94 crore (FY2025-26 AR, consolidated statement of profit and loss, p. F144)."
+   }
+  ]
  }
 ]

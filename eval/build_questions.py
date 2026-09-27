@@ -122,6 +122,19 @@ add("E3", "composite", "What is Tata Steel's consolidated Piotroski F-score for 
 add("E4", "composite", "Compute Tata Steel's consolidated Beneish M-score for FY2025-26. Is there an earnings-manipulation flag?",
     [beneish_m("FY2025-26", C)["score"]], [inp(k, y) for y in ("FY2024-25", "FY2025-26") for k in ("trade_receivables", "revenue_from_operations")],
     must_mention=["unlikely"])
+# J: follow-up questions (conversation memory). The earlier turn is given as history; the answer must re-fetch figures.
+add("J1", "follow_up", "And in FY2023-24?", metric("total_current_assets / total_current_liabilities", ["FY2023-24"]),
+    [inp(k, "FY2023-24") for k in ("total_current_assets", "total_current_liabilities")])
+Q[-1]["history"] = [{"role": "user", "content": "What was Tata Steel's consolidated current ratio in FY2025-26?"},
+                    {"role": "assistant", "content": "Tata Steel's consolidated current ratio in FY2025-26 was 0.75x "
+                     "(total current assets 72,265.11 / total current liabilities 96,917.64 INR crore; FY2025-26 AR, p. F142-F143)."}]
+rv = lambda y: val("revenue_from_operations", y)
+add("J2", "follow_up", "How much did it grow compared with the previous year, in crore and percent?",
+    [rv("FY2025-26") - rv("FY2024-25"), (rv("FY2025-26") / rv("FY2024-25") - 1) * 100],
+    [inp("revenue_from_operations", y) for y in ("FY2024-25", "FY2025-26")])
+Q[-1]["history"] = [{"role": "user", "content": "What was Tata Steel's consolidated revenue from operations in FY2025-26?"},
+                    {"role": "assistant", "content": "Consolidated revenue from operations in FY2025-26 was INR 2,32,139.94 crore "
+                     "(FY2025-26 AR, consolidated statement of profit and loss, p. F144)."}]
 Path("eval/questions.json").write_text(json.dumps(Q, indent=1))
 print(f"{len(Q)} questions written to eval/questions.json")
 from collections import Counter

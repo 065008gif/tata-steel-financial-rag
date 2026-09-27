@@ -1,0 +1,56 @@
+{
+ "summary": {
+  "tier1_filtered_retrieval": {
+   "hit_rate@4": 1.0,
+   "mrr": 1.0
+  },
+  "numeric_questions_fully_correct": "2/2",
+  "expected_numbers_found": "3/3",
+  "source_pages_retrieved": "2/2 questions",
+  "expected_pages_cited": "3/3",
+  "abstention_correct": "2/2",
+  "answers_fully_grounded": "2/2",
+  "avg_seconds": 9,
+  "avg_tool_calls": 2.5
+ },
+ "records": [
+  {
+   "id": "J1",
+   "category": "follow_up",
+   "question": "And in FY2023-24?",
+   "seconds": 13,
+   "tool_calls": 4,
+   "numeric": "1/1",
+   "numeric_all": true,
+   "missed_numbers": [],
+   "citation": "2/2",
+   "retrieval_hit": true,
+   "mentions": null,
+   "must_abstain": false,
+   "refused": false,
+   "abstention_ok": true,
+   "grounded": "10/10",
+   "unverified": [],
+   "answer": "**Consolidated current ratio (Total current assets ÷ Total current liabilities)**  \n\n| Fiscal year | Total current assets (INR cr) | Total current liabilities (INR cr) | Current ratio |\n|--------------|------------------------------|-----------------------------------|--------------|\n| FY2025‑26 | 72,265.11 cr (FY2025‑26 Annual Report, consolidated balance sheet, p. F142) | 96,917.64 cr (FY2025‑26 Annual Report, consolidated balance sheet, p. F143) | 0.7456 ≈ 0.75 x |\n| FY2023‑24 | 70,503.59 cr (FY2024‑25 Annual Report, consolidated balance sheet, comparative column for FY2023‑24, p. F150) | 98,403.48 cr (FY2024‑25 Annual Report, consolidated balance sheet, comparative column for FY2023‑24, p. F151) | 0.7165 ≈ 0.72 x |\n\n*The ratios are calculated directly from the balance‑sheet figures using the exact division results returned by the **calculate** tool (0.745634 for FY2025‑26 and 0.716475 for FY2023‑24).*\n\n---\nVerification: 10/10 figures grounded in source data."
+  },
+  {
+   "id": "J2",
+   "category": "follow_up",
+   "question": "How much did it grow compared with the previous year, in crore and percent?",
+   "seconds": 5,
+   "tool_calls": 1,
+   "numeric": "2/2",
+   "numeric_all": true,
+   "missed_numbers": [],
+   "citation": "1/1",
+   "retrieval_hit": true,
+   "mentions": null,
+   "must_abstain": false,
+   "refused": false,
+   "abstention_ok": true,
+   "grounded": "6/6",
+   "unverified": [],
+   "answer": "**Revenue from operations**\n\n| FY | Revenue (INR crore) |\n|---|----------------------|\n| FY2024‑25 | 2,18,542.51 cr (FY2025‑26 Annual Report, consolidated profit‑and‑loss statement, p. F144) |\n| FY2025‑26 | 2,32,139.94 cr (FY2025‑26 Annual Report, consolidated profit‑and‑loss statement, p. F144) |\n\n**Growth to FY2025‑26**\n\n* **Absolute increase:** **13,597.43 crore**  \n* **Percentage increase:** **6.22 %**\n\nThe YoY change (13,597.43 cr, 6.22 %) is the change reported in the FY2025‑26 Annual Report, which compares the FY2025‑26 level with the FY2024‑25 level shown in the same table.\n\n---\nVerification: 6/6 figures grounded in source data."
+  }
+ ]
+}

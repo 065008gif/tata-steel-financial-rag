@@ -1,0 +1,37 @@
+{
+ "summary": {
+  "tier1_filtered_retrieval": {
+   "hit_rate@4": 1.0,
+   "mrr": 1.0
+  },
+  "numeric_questions_fully_correct": "1/1",
+  "expected_numbers_found": "2/2",
+  "source_pages_retrieved": "1/1 questions",
+  "expected_pages_cited": "3/3",
+  "abstention_correct": "1/1",
+  "answers_fully_grounded": "1/1",
+  "avg_seconds": 8,
+  "avg_tool_calls": 1.0
+ },
+ "records": [
+  {
+   "id": "E2",
+   "category": "composite",
+   "question": "Calculate Tata Steel's consolidated Altman Z'' score for FY2024-25 and FY2025-26 and interpret the zone.",
+   "seconds": 8,
+   "tool_calls": 1,
+   "numeric": "2/2",
+   "numeric_all": true,
+   "missed_numbers": [],
+   "citation": "3/3",
+   "retrieval_hit": true,
+   "mentions": "1/1",
+   "must_abstain": false,
+   "refused": true,
+   "abstention_ok": true,
+   "grounded": "33/33",
+   "unverified": [],
+   "answer": "**Tata Steel – Consolidated Altman Z″ (book‑equity) Scores**\n\n| Component (Altman Z″ formula) | FY 2024‑25 | FY 2025‑26 |\n|---|---|---|\n| **X1** = (Current assets – Current liabilities) / Total assets | –0.0634 | –0.0818 |\n| **X2** = Retained earnings / Total assets | 0.1206 | 0.1317 |\n| **X3** = (Profit before tax + Finance costs) / Total assets | 0.0564 | 0.0768 |\n| **X4** = Total equity / (Total assets – Total equity) | 0.4858 | 0.5255 |\n| **Altman Z″ Score** | **0.8666** | **0.9604** |\n| **Interpretation** | **Distress** ( < 1.10 ) | **Distress** ( < 1.10 ) |\n\n**Underlying financial figures (INR crore)**  \n\n| Item | FY 2024‑25 | FY 2025‑26 |\n|---|---|---|\n| Total assets | 279,394.80 | 301,254.11 |\n| Total equity | 91,352.78 | 103,780.45 |\n| Total current assets | 68,391.54 | 72,265.11 |\n| Total current liabilities | 86,093.55 | 96,917.64 |\n| Profit before tax | 8,412.87 | 15,968.69 |\n| Finance costs | 7,340.95 | 7,167.06 |\n| Retained earnings (end‑year) | 33,698.53 | 39,674.80 |\n\n**Sources**  \n- FY 2025‑26 Annual Report, consolidated balance sheet, pages F142‑F143 (total assets, total equity, current assets, current liabilities).  \n- FY 2025‑26 Annual Report, consolidated profit‑and‑loss statement, page F144 (profit before tax, finance costs).  \n- FY 2025‑26 Annual Report, note “Other equity – Retained earnings”, page F197 (retained earnings).  \n\n**Notes on the calculation**  \n- The Z″ variant used is the *book‑equity* version because market‑value equity is not disclosed in the reports; therefore **X4** employs total equity (see tool‑generated note).  \n- **X3** is derived as profit before tax + finance costs (EBIT after exceptional items), as specified in the tool‑generated note.  \n\n**Interpretation of the zone**  \nAltman Z″ thresholds (from the same tool output) are:  \n- **> 2.60** = *Safe*  \n- **1.10 – 2.60** = *Grey*  \n- **< 1.10** = *Distress*  \n\nBoth FY 2024‑25 (0.87) and FY 2025‑26 (0.96) are below 1.10, placing Tata Steel’s consolidated position in the **distress** zone for each year. This indicates a higher probability of financial difficulty according to the book‑equity Altman Z″ model.\n\n---\nVerification: 33/33 figures grounded in source data."
+  }
+ ]
+}

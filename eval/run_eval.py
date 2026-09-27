@@ -44,7 +44,7 @@ records = []
 for q in Q:
     if only and q["id"] not in only: continue
     t = time.time()
-    try: answer, info = ask(q["question"], verbose=False)
+    try: answer, info = ask(q["question"], verbose=False, history=q.get("history"))
     except Exception as e: answer, info = f"ERROR: {e}", {"trace": [], "grounded": 0, "total": 0, "unverified": []}
     found = [v for v, _ in numbers_in(answer, signed=True)]
     exp = q["expected_numbers"]

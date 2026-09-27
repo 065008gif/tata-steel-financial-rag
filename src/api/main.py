@@ -8,6 +8,7 @@ from pathlib import Path
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from typing import List, Literal
 from pydantic import BaseModel, Field
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -39,10 +40,18 @@ METRICS = [  # key, name, formula, unit, decimals, higher_is_better
     ("net_profit_margin", "Net profit margin", "profit_for_the_year / revenue_from_operations * 100", "%", 2, True),
     ("ebitda_margin", "EBITDA margin",
      "(profit_before_exceptional_and_tax + finance_costs + depreciation_amortisation - other_income) / revenue_from_operations * 100", "%", 2, True),
-    ("roe", "Return on equity (avg equity)", "profit_for_the_year / avg(total_equity) * 100", "%", 2, True)]
+    ("roe", "Return on equity (avg equity)", "profit_for_the_year / avg(total_equity) * 100", "%", 2, True),
+    ("net_debt", "Net debt (borrowings + leases - cash, bank balances and current investments)",
+     "non_current_borrowings + current_borrowings + non_current_lease_liabilities + current_lease_liabilities"
+     " - cash_and_cash_equivalents - other_bank_balances - current_investments", "INR crore", 2, False)]
+
+class HistoryMessage(BaseModel):
+    role: Literal["user", "assistant"]
+    content: str = Field(..., max_length=20000)
 
 class AskRequest(BaseModel):
     question: str = Field(..., min_length=3, max_length=2000)
+    history: List[HistoryMessage] = Field(default_factory=list, max_length=20)
 
 @app.exception_handler(Exception)
 async def unhandled(request, exc):
@@ -83,7 +92,7 @@ def health():
 def ask(req: AskRequest):
     t0 = time.time()
     try:
-        _, info = A.ask(req.question, verbose=False)
+        _, info = A.ask(req.question, verbose=False, history=[m.model_dump() for m in req.history])
     except Exception as e:
         return JSONResponse(status_code=503, content={"error": f"The AI model is temporarily unavailable: {str(e)[:200]}"})
     body = info.get("answer_body") or "I could not complete this analysis within the step limit."

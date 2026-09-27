@@ -16,6 +16,7 @@ services:
     env_file: .env                                # OLLAMA_API_KEY (never committed)
     environment:
       QDRANT_URL: http://qdrant:6333
+      HF_HUB_OFFLINE: "1"                         # use the downloaded models in .cache only; never depend on the network at start-up
     volumes:
       - ./data:/app/data:ro
       - ./eval:/app/eval:ro

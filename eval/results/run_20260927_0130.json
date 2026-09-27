@@ -1,0 +1,78 @@
+{
+ "summary": {
+  "tier1_filtered_retrieval": {
+   "hit_rate@4": 1.0,
+   "mrr": 1.0
+  },
+  "numeric_questions_fully_correct": "1/2",
+  "expected_numbers_found": "1/3",
+  "source_pages_retrieved": "3/3 questions",
+  "expected_pages_cited": "8/8",
+  "abstention_correct": "3/3",
+  "answers_fully_grounded": "3/3",
+  "avg_seconds": 9,
+  "avg_tool_calls": 1.3
+ },
+ "records": [
+  {
+   "id": "E2",
+   "category": "composite",
+   "question": "Calculate Tata Steel's consolidated Altman Z'' score for FY2024-25 and FY2025-26 and interpret the zone.",
+   "seconds": 15,
+   "tool_calls": 2,
+   "numeric": "0/2",
+   "numeric_all": false,
+   "missed_numbers": [
+    1.5226,
+    1.6232
+   ],
+   "citation": "3/3",
+   "retrieval_hit": true,
+   "mentions": "1/1",
+   "must_abstain": false,
+   "refused": false,
+   "abstention_ok": true,
+   "grounded": "49/49",
+   "unverified": [],
+   "answer": "**Tata Steel – Consolidated Altman Z″ (book‑equity) Scores**\n\n| Year | X1 (Current assets – Current liabilities) / Total assets | X2 (Other equity) / Total assets | X3 (Profit before tax + Finance costs) / Total assets | X4 (Total equity) / ( Total assets – Total equity ) | **Altman Z″ Score** | Interpretation |\n|------|-----------------------------------------------------------|----------------------------------|--------------------------------------------------------|------------------------------------------------------|-------------------|----------------|\n| FY 2024‑25 | –0.0634 | 0.1206 | 0.0564 | 0.4858 | **0.8666** | **Distress** |\n| FY 2025‑26 | –0.0818 | 0.1317 | 0.0768 | 0.5255 | **0.9604** | **Distress** |\n\n*The score uses the book‑equity version of Altman Z″ (X4 employs total equity from the balance sheet). Thresholds: > 2.60 = **Safe**, 1.10‑2.60 = **Grey**, < 1.10 = **Distress**.*\n\n**Input figures (INR crore)**  \n\n| Item | FY 2024‑25 | FY 2025‑26 | Source |\n|------|------------|------------|--------|\n| Total assets | 279,394.80 | 301,254.11 | FY 2025‑26 Annual Report, consolidated balance sheet, p. F142 |\n| Total equity | 91,352.78 | 103,780.45 | FY 2025‑26 Annual Report, consolidated balance sheet, p. F143 |\n| Total current assets | 68,391.54 | 72,265.11 | FY 2025‑26 Annual Report, consolidated balance sheet, p. F142 |\n| Total current liabilities | 86,093.55 | 96,917.64 | FY 2025‑26 Annual Report, consolidated balance sheet, p. F143 |\n| Profit before tax | 8,412.87 | 15,968.69 | FY 2025‑26 Annual Report, consolidated profit & loss, p. F144 |\n| Finance costs | 7,340.95 | 7,167.06 | FY 2025‑26 Annual Report, consolidated profit & loss, p. F144 |\n| Retained earnings (Other equity) | 33,698.53 | 39,674.80 | FY 2025‑26 Annual Report, note “Other equity – Retained earnings”, p. F197 |\n\n**Derived totals used for X3**\n\n| Year | Profit before tax + Finance costs | Source |\n|------|-----------------------------------|--------|\n| FY 2024‑25 | 15,753.82 | calculated: 8,412.87 + 7,340.95 = 15,753.82 (tool “calculate”) |\n| FY 2025‑26 | 23,135.75 | calculated: 15,968.69 + 7,167.06 = 23,135.75 (tool “calculate”) |\n\n**Interpretation**\n\n- Both FY 2024‑25 (score 0.87) and FY 2025‑26 (score 0.96) are **below the 1.10 “grey” threshold**, placing Tata Steel in the **Distress zone** of the Altman Z″ model.  \n- The **negative X1 component** (‑0.0634 in FY 2024‑25, ‑0.0818 in FY 2025‑26) reflects that **total current assets are lower than total current liabilities** (68,391.54 < 86,093.55 in FY 2024‑25; 72,265.11 < 96,917.64 in FY 2025‑26), indicating a weak working‑capital position.  \n- **X3** (0.0564 in FY 2024‑25, 0.0768 in FY 2025‑26) is the ratio of the sums shown above (15,753.82 and 23,135.75) to total assets; the values are modest, contributing only a small positive amount to the overall score.  \n- Although **X2** (other equity/total assets) and **X4** (equity leverage) are positive, they are insufficient to offset the negative X1 effect, resulting in overall distress scores.\n\n**Conclusion**\n\nAccording to the book‑equity Altman Z″ calculation, Tata Steel’s consolidated financial condition in FY 2024‑25 and FY 2025‑26 is classified as **distressed**, signalling heightened bankruptcy risk. The primary driver of the low scores is the **current‑liability‑exceeds‑current‑asset** situation captured by the negative X1 component.\n\n---\nVerification: 49/49 figures grounded in source data."
+  },
+  {
+   "id": "E3",
+   "category": "composite",
+   "question": "What is Tata Steel's consolidated Piotroski F-score for FY2025-26, and what does it indicate?",
+   "seconds": 6,
+   "tool_calls": 1,
+   "numeric": null,
+   "numeric_all": null,
+   "missed_numbers": [],
+   "citation": "3/3",
+   "retrieval_hit": true,
+   "mentions": "2/2",
+   "must_abstain": false,
+   "refused": false,
+   "abstention_ok": true,
+   "grounded": "20/20",
+   "unverified": [],
+   "answer": "**Tata Steel – Consolidated Piotroski F‑score (FY 2025‑26)**  \n\n| Metric | FY 2025‑26 |\n|--------|------------|\n| **Piotroski F‑score** | **8** |\n| Interpretation (per the tool’s thresholds) | **Strong** (8‑9 = strong) |\n\n**Why the score is 8**\n\nThe Piotroski F‑score is built from nine binary signals (F1 – F9). The tool that computed the score ( *compute_scores* ) provides the value of each signal together with the underlying figures used. All nine signals and their values are reproduced below; the source is the FY 2025‑26 Annual Report (consolidated balance‑sheet, profit‑and‑loss and cash‑flow statements, pages F142‑F148).\n\n| Signal | Condition (as defined by Piotroski) | FY 2025‑26 value | FY 2024‑25 comparison | Point awarded |\n|--------|-------------------------------------|-----------------|-----------------------|--------------|\n| **F1** – ROA > 0 | ROA = profit / total assets (t‑1) | 0.038962 | 0.0000 | 1 |\n| **F2** – CFO > 0 | Operating cash flow | 35 064.46 cr | 0.00 | 1 |\n| **F3** – ROA improvement | ROA t > ROA t‑1 | 0.038962 | 0.011608 | 1 |\n| **F4** – CFO / assets > ROA | (CFO / total assets t‑1) > ROA t | 0.125501 | 0.038962 | 1 |\n| **F5** – Leverage ↓ | non‑current borrowings / total assets ↓ | 0.211628 | 0.245358 | 1 |\n| **F6** – Current‑ratio ↑ | total current assets / total current liabilities ↑ | 0.745634 | 0.794386 | 0 |\n| **F7** – No new equity | equity share capital unchanged | 1 247.44 cr | 1 247.44 cr | 1 |\n| **F8** – Gross‑margin ↑ (proxy) | (revenue – cost of materials) / revenue ↑ | 0.679207 | 0.647301 | 1 |\n| **F9** – Asset‑turnover ↑ | revenue / total assets t‑1 ↑ | 0.830867 | 0.799282 | 1 |\n| **Total score** | – | **8** | – | – |\n\n*Sources*: FY 2025‑26 Annual Report, consolidated balance‑sheet (p. F142‑F143), profit‑and‑loss (p. F144) and cash‑flow statement (p. F148). The Piotroski F‑score and its interpretation are generated by the *compute_scores* tool, which applies the standard nine‑signal methodology and the thresholds “8‑9 = strong; 5‑7 = average; 0‑4 = weak”.\n\n**Interpretation**\n\nA score of **8** places Tata Steel in the **strong** category, meaning that eight of the nine signals are positive:\n\n* Profitability is positive and improving (F1, F3).  \n* Cash generation exceeds earnings (F2, F4).  \n* Leverage has fallen (F5).  \n* No additional equity was issued (F7).  \n* Gross margin and asset turnover have risen (F8, F9).\n\nThe only signal not met is **F6** (current‑ratio increase), because the current ratio declined from 0.79 × in FY 2024‑25 to 0.75 × in FY 2025‑26 (values shown in the table above).\n\nOverall, the Piotroski F‑score of **8** indicates that Tata Steel’s earnings in FY 2025‑26 were of high quality, supported by strong cash flow, improving profitability, and a weaker balance‑sheet leverage profile.\n\n---\nVerification: 20/20 figures grounded in source data."
+  },
+  {
+   "id": "E4",
+   "category": "composite",
+   "question": "Compute Tata Steel's consolidated Beneish M-score for FY2025-26. Is there an earnings-manipulation flag?",
+   "seconds": 6,
+   "tool_calls": 1,
+   "numeric": "1/1",
+   "numeric_all": true,
+   "missed_numbers": [],
+   "citation": "2/2",
+   "retrieval_hit": true,
+   "mentions": "1/1",
+   "must_abstain": false,
+   "refused": false,
+   "abstention_ok": true,
+   "grounded": "14/14",
+   "unverified": [],
+   "answer": "**Tata Steel – Consolidated Beneish M‑score (FY 2025‑26)**  \n\n| Component | FY 2025‑26 |\n|-----------|------------|\n| DSRI (receivables‑to‑sales index) | 0.8800 |\n| GMI (gross‑margin index) | 0.9530 |\n| AQI (asset‑quality index) | 0.8488 |\n| SGI (sales‑growth index) | 1.0622 |\n| DEPI (depreciation index) | 1.0401 |\n| SGAI (SG&A‑proxy index) | 0.9974 |\n| LVGI (leverage index) | 0.9636 |\n| **TATA** (total‑accruals / total assets) | **‑0.0803** |\n| **Beneish M‑score** | **‑2.9793** |\n| **Interpretation** | *unlikely manipulator* |\n\n**Explanation of the result**  \nThe Beneish M‑score is calculated from the eight variables shown above. The threshold used in the model is **‑1.78**; a score **greater than –1.78** signals a possible earnings‑manipulation flag, while a score **below –1.78** indicates that manipulation is unlikely. Tata Steel’s FY 2025‑26 score of **‑2.9793** is well below the flag threshold, so **no earnings‑manipulation flag is triggered**.\n\n**Source** – FY 2025‑26 Annual Report, consolidated statements (balance sheet p. F142, p. F143; profit & loss p. F144; cash‑flow p. F148). The score and its interpretation are provided directly by the **compute_scores** tool, which applies the standard Beneish eight‑variable model and the –1.78 flag threshold.\n\n---\nVerification: 14/14 figures grounded in source data."
+  }
+ ]
+}

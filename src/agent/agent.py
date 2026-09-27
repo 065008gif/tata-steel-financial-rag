@@ -67,6 +67,12 @@ RULES
     the year by reconciling it with the statements (e.g. segment totals against consolidated figures).
 21. Altman Z'', Piotroski F and Beneish M scores must come from compute_scores. Never compute them yourself or mix in
     other variants (e.g. the original five-variable Altman Z). Report the tool's score, zone and disclosed proxies.
+22. The conversation may include earlier questions and answers. Use them to understand follow-ups ("and FY2023-24?",
+    "why?", "compare that with..."), but re-fetch every figure with tools in this turn: numbers from earlier answers are
+    not verified sources. If a follow-up is ambiguous, state the interpretation you used.
+23. The answer is shown in a chat window that renders Markdown but NOT LaTeX: never use \\( \\) \\[ \\] or commands like
+    \\frac. Write any formula in plain text, e.g. "(29,997.19 + 51,576.73) / 92,432.74 = 0.88x". Never mention internal
+    tool names (get_financials, calculate, compute_metric, search_documents...); say "computed from the reported figures".
 
 STANDARD DEFINITIONS (state the definition you used)
 - Current ratio = Total current assets / Total current liabilities
@@ -180,8 +186,16 @@ def finish(answer, nums, bad, trace, fixes, note=""):
     return answer + footer, {"trace": trace, "grounded": n_ok, "total": len(nums), "unverified": bad, "fix_rounds": fixes,
                              "answer_body": answer, "warnings": [note] if note else []}
 
-def ask(question, max_steps=24, max_fixes=2, verbose=True):
-    msgs = [{"role": "system", "content": SYSTEM}, {"role": "user", "content": question}]
+def _history(h):
+    """Earlier chat turns (last 8 messages, capped), so follow-up questions can be resolved."""
+    out = []
+    for m in (h or [])[-8:]:
+        r, c = (m.get("role"), str(m.get("content", ""))[:4000]) if isinstance(m, dict) else (None, "")
+        if r in ("user", "assistant") and c.strip(): out.append({"role": r, "content": c})
+    return out
+
+def ask(question, max_steps=24, max_fixes=2, verbose=True, history=None):
+    msgs = [{"role": "system", "content": SYSTEM}] + _history(history) + [{"role": "user", "content": question}]
     trace, pools, fixes, last = [], (set(), set()), 0, None
     reviewed = False
     collect(question, pools)
