@@ -1,121 +1,25 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import "./App.css";
+import { getFinancials, getHealth, getMetrics, getScores } from "./api.js";
+import AskPage, { suggestedQuestions } from "./components/AskPage.jsx";
+import DashboardPage from "./components/DashboardPage.jsx";
+import EvaluationPage from "./components/EvaluationPage.jsx";
+import SourcesPage from "./components/SourcesPage.jsx";
+import {
+  Icon,
+  RestatedMark,
+  SectionHeading,
+  Value,
+  formatChangePct,
+  formatNumber,
+  sentenceCase,
+  useApi,
+} from "./components/ui.jsx";
+import { useConversations } from "./useConversations.js";
 
-const pages = ["Home", "Ask Edith", "Dashboard", "Evaluation"];
+const pages = ["Home", "Ask Edith", "Dashboard", "Evaluation", "Sources"];
 
-const suggestedQuestions = [
-  {
-    category: "Profitability",
-    question: "How does Tata Steel discuss profitability?",
-  },
-  {
-    category: "Liquidity",
-    question: "Where can I find the cash flow discussion?",
-  },
-  {
-    category: "Risk",
-    question: "What risks are described in the report?",
-  },
-  {
-    category: "Segments",
-    question: "Where is segment performance discussed?",
-  },
-];
-
-function Icon({ name, size = 22 }) {
-  const paths = {
-    spark: (
-      <>
-        <path d="M12 2.8 14.2 9.8 21.2 12 14.2 14.2 12 21.2 9.8 14.2 2.8 12 9.8 9.8 12 2.8Z" />
-        <path d="m19 2 .6 2.4L22 5l-2.4.6L19 8l-.6-2.4L16 5l2.4-.6L19 2Z" />
-      </>
-    ),
-
-    search: (
-      <>
-        <circle cx="10.8" cy="10.8" r="6.8" />
-        <path d="m16 16 5 5" />
-      </>
-    ),
-
-    file: (
-      <>
-        <path d="M6 2.8h8l4.5 4.5v13.9H6z" />
-        <path d="M14 2.8v5h4.5M9 12h6M9 16h6" />
-      </>
-    ),
-
-    check: (
-      <>
-        <path d="m4 12.5 5 5L20 6.5" />
-        <circle cx="12" cy="12" r="9" />
-      </>
-    ),
-
-    chart: (
-      <>
-        <path d="M3 20V4M3 20h18" />
-        <path d="m6 15 4-4 3 2 6-7" />
-        <path d="M16 6h3v3" />
-      </>
-    ),
-
-    arrow: <path d="M4 12h15m-6-6 6 6-6 6" />,
-
-    menu: (
-      <>
-        <path d="M4 7h16M4 12h16M4 17h16" />
-      </>
-    ),
-
-    close: <path d="m6 6 12 12M18 6 6 18" />,
-
-    book: (
-      <>
-        <path d="M3.5 5.5A3 3 0 0 1 6.5 3H20v16H6.5a3 3 0 0 0-3 3z" />
-        <path d="M3.5 5.5v16M7.5 7h8M7.5 11h8" />
-      </>
-    ),
-
-    shield: (
-      <>
-        <path d="M12 2.8 20 6v5.4c0 5.2-3.4 8.5-8 10.2-4.6-1.7-8-5-8-10.2V6z" />
-        <path d="m8.5 12 2.3 2.3 4.8-5" />
-      </>
-    ),
-
-    clock: (
-      <>
-        <circle cx="12" cy="12" r="9" />
-        <path d="M12 7v5l3.5 2" />
-      </>
-    ),
-
-    layers: (
-      <>
-        <path d="m12 3 9 5-9 5-9-5z" />
-        <path d="m3 12 9 5 9-5M3 16l9 5 9-5" />
-      </>
-    ),
-  };
-
-  return (
-    <svg
-      className="icon"
-      width={size}
-      height={size}
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.7"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden="true"
-    >
-      {paths[name] || paths.spark}
-    </svg>
-  );
-}
+const HEALTH_POLL_MS = 60_000;
 
 function Brand({ compact = false }) {
   return (
@@ -170,42 +74,80 @@ function Header({ activePage, setActivePage }) {
           ))}
         </nav>
 
-        <button className="header-cta" onClick={() => goTo("Ask Edith")}>
-          Ask Edith <Icon name="arrow" size={16} />
-        </button>
+        <div className="header-actions">
+          <BackendStatus />
+
+          <button className="header-cta" onClick={() => goTo("Ask Edith")}>
+            Ask Edith <Icon name="arrow" size={16} />
+          </button>
+        </div>
       </div>
     </header>
   );
 }
 
-function StatusPill({ children, tone = "pending" }) {
+/* Live backend status from /api/health, polled every 60 s. */
+function BackendStatus() {
+  const [health, setHealth] = useState({ state: "checking", detail: null });
+
+  useEffect(() => {
+    let active = true;
+
+    function check() {
+      getHealth().then(
+        (data) =>
+          active &&
+          setHealth({
+            state: data.status === "ok" ? "live" : "degraded",
+            detail: data,
+          }),
+        () => active && setHealth({ state: "offline", detail: null }),
+      );
+    }
+
+    check();
+    const timer = setInterval(check, HEALTH_POLL_MS);
+
+    return () => {
+      active = false;
+      clearInterval(timer);
+    };
+  }, []);
+
+  const labels = {
+    checking: "Checking",
+    live: "Live",
+    degraded: "Degraded",
+    offline: "Offline",
+  };
+
+  const title =
+    health.state === "live" || health.state === "degraded"
+      ? `Backend ${health.state} · model ${health.detail.llm_model} · ${
+          health.detail.index_points ?? "no"
+        } indexed passages · reports ${health.detail.reports.join(", ")}`
+      : health.state === "offline"
+        ? "Edith's backend is not reachable"
+        : "Checking the backend";
+
   return (
-    <span className={`status-pill ${tone}`}>
-      {children}
+    <span
+      className={`backend-status ${health.state}`}
+      title={title}
+      role="status"
+      aria-label={title}
+    >
+      <i />
+      {labels[health.state]}
     </span>
   );
 }
-
-function SectionHeading({ eyebrow, title, description, action }) {
-  return (
-    <div className="section-heading">
-      <div>
-        {eyebrow && <div className="section-eyebrow">{eyebrow}</div>}
-        <h2>{title}</h2>
-        {description && <p>{description}</p>}
-      </div>
-
-      {action && <div className="section-heading-action">{action}</div>}
-    </div>
-  );
-}
-
 
 /* =========================================================
    HOME PAGE
    ========================================================= */
 
-function HomePage({ setActivePage }) {
+function HomePage({ setActivePage, onAskEdith }) {
   const [expandedStep, setExpandedStep] = useState(0);
 
   const steps = [
@@ -287,8 +229,8 @@ function HomePage({ setActivePage }) {
           <div className="hero-note">
             <span className="note-dot" />
             <span>
-              Prototype interface · Financial figures will only appear after
-              source data is connected and checked.
+              Live · Figures from Tata Steel's four annual reports
+              (FY2022-23 to FY2025-26), each linked to its source page.
             </span>
           </div>
 
@@ -304,12 +246,12 @@ function HomePage({ setActivePage }) {
           <div className="hero-art-orbit orbit-large" />
           <div className="hero-art-orbit orbit-small" />
 
-          <div className="tata-wordmark">
-            <span>TATA</span>
-            <strong>STEEL</strong>
-          </div>
-
           <div className="steel-data-core">
+
+            <div className="tata-wordmark">
+              <span>TATA</span>
+              <strong>STEEL</strong>
+            </div>
 
             <div className="steel-core-glow" />
 
@@ -405,6 +347,13 @@ function HomePage({ setActivePage }) {
         </div>
 
       </section>
+
+
+      {/* AT A GLANCE (live data) */}
+      <GlanceSection
+        setActivePage={setActivePage}
+        onAskEdith={onAskEdith}
+      />
 
 
       {/* TRUST STRIP */}
@@ -519,8 +468,8 @@ function HomePage({ setActivePage }) {
             <h3>Explore financial trends</h3>
 
             <p>
-              Review statements, trends and financial ratios once verified
-              report data becomes available.
+              Review statements, trends, financial ratios, composite scores
+              and segments from verified report data.
             </p>
 
             <button
@@ -680,7 +629,7 @@ function HomePage({ setActivePage }) {
 
             <span>
               <Icon name="check" size={17} />
-              Annual and quarterly reporting
+              Four annual reports, FY2022-23 to FY2025-26
             </span>
 
             <span>
@@ -743,1071 +692,177 @@ function HomePage({ setActivePage }) {
 
 
 /* =========================================================
-   ASK EDITH
+   HOME · AT A GLANCE (live data)
    ========================================================= */
-function AskPage({ setActivePage }) {
-  const [question, setQuestion] = useState("");
-  const [submittedQuestion, setSubmittedQuestion] = useState("");
-  const [showWelcome, setShowWelcome] = useState(true);
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-  const [recentQuestions, setRecentQuestions] = useState([]);
 
-  function askQuestion(value = question) {
-    const trimmed = value.trim();
+// Same item list as the Dashboard, so the cached response is shared.
+const GLANCE_ITEMS = [
+  "revenue_from_operations",
+  "profit_for_the_year",
+  "net_cash_from_operating",
+];
 
-    if (!trimmed) return;
+const TRY_ASKING = [0, 2, 4, 6, 7, 10].map((index) => suggestedQuestions[index]);
 
-    setQuestion(trimmed);
-    setSubmittedQuestion(trimmed);
-    setRecentQuestions((items) => [
-      trimmed,
-      ...items.filter((item) => item !== trimmed),
-    ].slice(0, 5));
-    setShowWelcome(false);
-  }
-
-  function startNewConversation() {
-    setQuestion("");
-    setSubmittedQuestion("");
-    setShowWelcome(true);
-  }
-
-  function openRecentConversation(item) {
-    setQuestion(item);
-    setSubmittedQuestion(item);
-    setShowWelcome(false);
-  }
-
+function GlanceTile({ label, icon, loading, value, detail, source, tone }) {
   return (
-    <main className="page inner-page ask-page">
-      <div className="page-title-row">
-        <div>
-          <div className="page-overline">
-            Tata Steel report assistant
-          </div>
+    <article className="metric-card glance-tile">
+      <div className="metric-card-top">
+        <span>{label}</span>
 
-          <h1>Ask Edith</h1>
-
-          <p>
-            Ask about Tata Steel's financial reports and inspect the evidence
-            that would support an answer.
-          </p>
-        </div>
+        <span className="metric-card-icon">
+          <Icon name={icon} size={18} />
+        </span>
       </div>
 
-      <div
-        className={`ask-layout ${
-          sidebarCollapsed ? "sidebar-collapsed" : ""
-        }`}
-      >
-        <aside
-          className="ask-sidebar"
-          aria-label="Conversation sidebar"
-        >
-          <button
-            type="button"
-            className="sidebar-toggle"
-            onClick={() =>
-              setSidebarCollapsed((collapsed) => !collapsed)
-            }
-            aria-label={
-              sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"
-            }
-            title={
-              sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"
-            }
-          >
-            {sidebarCollapsed ? "Show sidebar" : "Hide sidebar"}
-          </button>
+      {loading ? (
+        <strong className="metric-value-skeleton" />
+      ) : (
+        <strong className="metric-value">{value}</strong>
+      )}
 
-          <button
-            type="button"
-            className="new-chat sidebar-new-chat"
-            onClick={startNewConversation}
-            aria-label="Start a new conversation"
-          >
-            <span>+ New conversation</span>
-            <Icon name="spark" size={16} />
-          </button>
-
-          <div className="sidebar-heading">
-            <div className="sidebar-heading-icon">
-              <Icon name="spark" size={19} />
-            </div>
-
-            <div>
-              <h2>Explore a topic</h2>
-              <p>Choose a prompt to get started.</p>
-            </div>
-          </div>
-
-          <div className="suggestion-list">
-            {suggestedQuestions.map((item) => (
-              <button
-                key={item.category}
-                type="button"
-                className="suggestion-item"
-                onClick={() => askQuestion(item.question)}
-              >
-                <span>{item.category}</span>
-                <strong>{item.question}</strong>
-                <Icon name="arrow" size={16} />
-              </button>
-            ))}
-          </div>
-
-          <div className="sidebar-info">
-            <div className="sidebar-info-title">
-              <Icon name="shield" size={18} />
-              What Edith will show
-            </div>
-
-            <div className="sidebar-info-row">
-              <span>Source</span>
-              <b>Tata Steel reports</b>
-            </div>
-
-            <div className="sidebar-info-row">
-              <span>Reference</span>
-              <b>Report, year, page</b>
-            </div>
-
-            <div className="sidebar-info-row">
-              <span>Evidence</span>
-              <b>Supporting excerpt</b>
-            </div>
-
-            <div className="sidebar-info-row">
-              <span>Status</span>
-              <b>Verified or not verified</b>
-            </div>
-          </div>
-
-          <div className="sidebar-recent">
-            <div className="recent-heading">
-              <span className="recent-dot" />
-              <b>Recent conversations</b>
-            </div>
-
-            {recentQuestions.length > 0 ? (
-              <div className="recent-question-list">
-                {recentQuestions.map((item, index) => (
-                  <button
-                    type="button"
-                    key={`${item}-${index}`}
-                    className={`recent-question ${
-                      submittedQuestion === item ? "active" : ""
-                    }`}
-                    onClick={() => openRecentConversation(item)}
-                    title={item}
-                  >
-                    {item}
-                  </button>
-                ))}
-              </div>
-            ) : (
-              <small className="recent-empty">
-                Your questions will appear here after you start a
-                conversation.
-              </small>
-            )}
-          </div>
-        </aside>
-
-        <section className="chat-panel">
-          <div className="chat-panel-header">
-            <div className="chat-avatar">E</div>
-
-            <div className="chat-header-copy">
-              <strong>Edith</strong>
-              <span>Report research assistant</span>
-            </div>
-          </div>
-
-          <div className="chat-content">
-            {showWelcome ? (
-              <div className="welcome-message">
-                <div className="welcome-icon">
-                  <Icon name="spark" size={24} />
-                </div>
-
-                <div>
-                  <h2>Hello, I'm Edith.</h2>
-
-                  <p>
-                    Ask a question about Tata Steel's financial reports.
-                    When the report library is connected, I'll retrieve
-                    the relevant passage and show its citation with the
-                    answer.
-                  </p>
-
-                  <div className="welcome-callout">
-                    <Icon name="book" size={18} />
-
-                    <span>
-                      Prototype mode: report search is not connected yet,
-                      so answers cannot be verified against source
-                      documents.
-                    </span>
-                  </div>
-                </div>
-              </div>
-            ) : (
-              <div className="conversation">
-                <div className="user-message">
-                  <span>You</span>
-                  <p>{submittedQuestion}</p>
-                </div>
-
-                <div className="assistant-message">
-                  <div className="assistant-message-avatar">
-                    E
-                  </div>
-
-                  <div className="assistant-message-body">
-                    <span>Edith · Source unavailable</span>
-
-                    <h3>
-                      I can't verify this from a report yet.
-                    </h3>
-
-                    <p>
-                      The Tata Steel report library is not connected in
-                      this prototype. I won't invent financial figures
-                      or claim a report supports an answer without
-                      retrieving its text.
-                    </p>
-
-                    <div className="evidence-placeholder">
-                      <div className="evidence-placeholder-top">
-                        <span>
-                          <Icon name="file" size={17} />
-                          Supporting evidence
-                        </span>
-                      </div>
-
-                      <div className="evidence-skeleton wide" />
-                      <div className="evidence-skeleton" />
-
-                      <small>
-                        Document title, reporting period, page number
-                        and exact excerpt will appear here.
-                      </small>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
-
-          <form
-            className="chat-composer"
-            onSubmit={(event) => {
-              event.preventDefault();
-              askQuestion();
-            }}
-          >
-            <textarea
-              value={question}
-              onChange={(event) => setQuestion(event.target.value)}
-              placeholder="Ask about Tata Steel's financial reports…"
-              rows={2}
-              aria-label="Ask a question"
-            />
-
-            <div className="composer-bottom">
-              <span>
-                <span className="composer-lock">
-                  <Icon name="shield" size={13} />
-                </span>
-                Prototype only · No live report search
-              </span>
-
-              <button
-                type="submit"
-                className="button button-primary"
-                disabled={!question.trim()}
-              >
-                Send
-                <Icon name="arrow" size={16} />
-              </button>
-            </div>
-          </form>
-        </section>
+      <div className="metric-card-bottom">
+        {detail ? (
+          <span className={`zone-chip ${tone || "neutral"}`}>{detail}</span>
+        ) : (
+          <span />
+        )}
       </div>
 
-      <div className="ask-page-links">
-        <button
-          className="text-link"
-          onClick={() => setActivePage("Dashboard")}
-        >
-          Open financial dashboard
-          <Icon name="arrow" size={15} />
-        </button>
-
-        <button
-          className="text-link"
-          onClick={() => setActivePage("Evaluation")}
-        >
-          Review evaluation design
-          <Icon name="arrow" size={15} />
-        </button>
-      </div>
-    </main>
+      {source && <small className="glance-source">{source}</small>}
+    </article>
   );
 }
 
+function GlanceSection({ setActivePage, onAskEdith }) {
+  const financials = useApi(
+    () => getFinancials(GLANCE_ITEMS, "consolidated"),
+    "financials-consolidated",
+  );
+  const metrics = useApi(() => getMetrics("consolidated"), "metrics-consolidated");
+  const scores = useApi(() => getScores("consolidated"), "scores-consolidated");
 
+  const years = financials.data?.years || metrics.data?.years;
+  const year = years?.[years.length - 1] || "FY2025-26";
+  const scoreYear = scores.data?.years[scores.data.years.length - 1];
 
-/* =========================================================
-   DASHBOARD
-   ========================================================= */
+  function itemTile(key, label, icon) {
+    const item = financials.data?.items[key];
+    const point = item?.values[year];
+    const change = item?.yoy_changes.find((entry) => entry.to === year);
 
-function DashboardPage() {
-  const [basis, setBasis] = useState("Consolidated");
-  const [period, setPeriod] = useState("Annual");
-  const [activeMetric, setActiveMetric] = useState("Revenue");
+    return (
+      <GlanceTile
+        key={key}
+        label={label}
+        icon={icon}
+        loading={financials.loading}
+        value={
+          <>
+            <small>₹</small>
+            <Value value={point?.value ?? null} restated={point?.restated} />
+            <small>cr</small>
+          </>
+        }
+        detail={
+          change && (
+            <>
+              {formatChangePct(change.change_pct)} YoY
+              {change.restated_basis && <RestatedMark />}
+            </>
+          )
+        }
+        tone={change ? (change.change_pct < 0 ? "distress" : "safe") : null}
+        source={point?.source || (financials.error ? "Could not load" : null)}
+      />
+    );
+  }
 
-  const metrics = [
-    "Revenue",
-    "Operating profit",
-    "Cash flow",
-    "Net debt",
-  ];
-
-  const ratios = [
-    "Operating margin",
-    "Current ratio",
-    "Debt to equity",
-    "Return on capital",
-  ];
+  const netDebt = metrics.data?.metrics.find((metric) => metric.key === "net_debt");
+  const altman = scores.data?.scores.altman_z?.[scoreYear];
+  const piotroski = scores.data?.scores.piotroski_f?.[scoreYear];
+  const zoneTone = (label) =>
+    ({ safe: "safe", strong: "safe", grey: "grey", average: "grey" })[label] ||
+    "distress";
 
   return (
-    <main className="page inner-page dashboard-page">
-
-      <div className="page-title-row">
-
-        <div>
-          <div className="page-overline">
-            Tata Steel · Financial overview
-          </div>
-
-          <h1>Dashboard</h1>
-
-          <p>
-            A working view of statements, financial trends and key ratios.
-          </p>
-        </div>
-
-
-      </div>
-
-
-      <div className="dashboard-controls">
-
-        <div className="control-group">
-
-          <label>Reporting basis</label>
-
-          <div className="segmented-control">
-
-            {["Consolidated", "Standalone"].map((item) => (
-
-              <button
-                key={item}
-                className={basis === item ? "selected" : ""}
-                onClick={() => setBasis(item)}
-              >
-                {item}
-              </button>
-
-            ))}
-
-          </div>
-
-        </div>
-
-
-        <div className="control-group">
-
-          <label>Period</label>
-
-          <div className="segmented-control">
-
-            {["Annual", "Quarterly"].map((item) => (
-
-              <button
-                key={item}
-                className={period === item ? "selected" : ""}
-                onClick={() => setPeriod(item)}
-              >
-                {item}
-              </button>
-
-            ))}
-
-          </div>
-
-        </div>
-
-
-        <div className="control-note">
-          <span className="live-indicator" />
-          Showing {basis.toLowerCase()} view · {period.toLowerCase()} periods
-        </div>
-
-      </div>
-
-
-      <div className="metric-grid">
-
-        {metrics.map((metric, index) => (
-
-          <button
-            key={metric}
-            className={`metric-card ${
-              activeMetric === metric ? "metric-active" : ""
-            }`}
-            onClick={() => setActiveMetric(metric)}
-          >
-
-            <div className="metric-card-top">
-
-              <span>{metric}</span>
-
-              <span className="metric-card-icon">
-                <Icon
-                  name={
-                    index === 0
-                      ? "chart"
-                      : index === 1
-                        ? "layers"
-                        : index === 2
-                          ? "book"
-                          : "shield"
-                  }
-                  size={18}
-                />
-              </span>
-
-            </div>
-
-            <strong className="metric-value-skeleton" />
-
-            <div className="metric-card-bottom">
-              <span>Awaiting connected data</span>
-              <span className="metric-mini-line" />
-            </div>
-
+    <section className="content-section glance-section">
+      <SectionHeading
+        eyebrow="LIVE FROM THE REPORTS"
+        title={`Tata Steel at a glance (${year}, consolidated)`}
+        description="Reported values with their year-on-year change, straight from the verified statements."
+        action={
+          <button className="text-link" onClick={() => setActivePage("Dashboard")}>
+            Open dashboard
+            <Icon name="arrow" size={16} />
           </button>
-
-        ))}
-
-      </div>
-
-
-      <div className="dashboard-main-grid">
-
-        <section className="dashboard-panel performance-panel">
-
-          <div className="panel-heading">
-
-            <div>
-              <h2>Financial performance</h2>
-              <p>
-                {activeMetric} · {basis} · {period}
-              </p>
-            </div>
-
-
-          </div>
-
-
-          <div className="chart-legend">
-            <span>
-              <i className="legend-dot green" />
-              Reported value
-            </span>
-
-            <span>
-              <i className="legend-dot blue" />
-              Prior period
-            </span>
-
-            <span className="chart-period-note">
-              Illustrative layout only
-            </span>
-          </div>
-
-
-          <div className="chart-area">
-
-            <div className="chart-y-labels">
-              <span>—</span>
-              <span>—</span>
-              <span>—</span>
-              <span>—</span>
-            </div>
-
-
-            <svg
-              className="performance-chart"
-              viewBox="0 0 700 250"
-              preserveAspectRatio="none"
-              role="img"
-              aria-label="Empty chart preview; no financial values loaded"
-            >
-
-              <defs>
-
-                <linearGradient
-                  id="chartFillGreen"
-                  x1="0"
-                  y1="0"
-                  x2="0"
-                  y2="1"
-                >
-                  <stop
-                    offset="0%"
-                    stopColor="#0f9b79"
-                    stopOpacity=".23"
-                  />
-
-                  <stop
-                    offset="100%"
-                    stopColor="#0f9b79"
-                    stopOpacity="0"
-                  />
-                </linearGradient>
-
-
-                <linearGradient
-                  id="chartStroke"
-                  x1="0"
-                  y1="0"
-                  x2="1"
-                  y2="0"
-                >
-                  <stop offset="0%" stopColor="#0d9d79" />
-                  <stop offset="100%" stopColor="#4c8ce8" />
-                </linearGradient>
-
-              </defs>
-
-
-              {[30, 85, 140, 195].map((y) => (
-                <line
-                  key={y}
-                  x1="0"
-                  y1={y}
-                  x2="700"
-                  y2={y}
-                  className="chart-gridline"
-                />
-              ))}
-
-
-              <path
-                d="M0 168 C65 155 85 122 145 133 S245 174 300 118 S390 74 445 97 S540 128 590 63 S650 45 700 30 L700 220 L0 220 Z"
-                fill="url(#chartFillGreen)"
-                className="chart-area-fill"
-              />
-
-
-              <path
-                d="M0 168 C65 155 85 122 145 133 S245 174 300 118 S390 74 445 97 S540 128 590 63 S650 45 700 30"
-                fill="none"
-                stroke="url(#chartStroke)"
-                strokeWidth="3.5"
-                strokeLinecap="round"
-                className="chart-line-animated"
-              />
-
-
-              <path
-                d="M0 185 C70 176 90 155 145 167 S240 193 300 160 S390 135 445 149 S535 166 590 125 S650 110 700 98"
-                fill="none"
-                stroke="#4c8ce8"
-                strokeWidth="2"
-                strokeDasharray="5 7"
-                opacity=".75"
-              />
-
-            </svg>
-
-
-            <div className="chart-empty-overlay">
-
-              <span className="chart-empty-icon">
-                <Icon name="chart" size={24} />
-              </span>
-
-              <strong>Chart preview</strong>
-
-              <p>
-                Connect and verify report figures to populate this trend.
-              </p>
-
-            </div>
-
-          </div>
-
-
-          <div className="chart-x-labels">
-            <span>Period 1</span>
-            <span>Period 2</span>
-            <span>Period 3</span>
-            <span>Period 4</span>
-            <span>Period 5</span>
-          </div>
-
-        </section>
-
-
-        <section className="dashboard-panel ratios-panel">
-
-          <div className="panel-heading">
-
-            <div>
-              <h2>Financial ratios</h2>
-              <p>Calculated from verified statement inputs.</p>
-            </div>
-
-            <span className="panel-icon">
-              <Icon name="layers" size={20} />
-            </span>
-
-          </div>
-
-
-          <div className="ratio-list">
-
-            {ratios.map((ratio, index) => (
-
-              <div className="ratio-item" key={ratio}>
-
-                <div className="ratio-topline">
-                  <span>{ratio}</span>
-                  <strong>—</strong>
-                </div>
-
-                <div className="ratio-track">
-                  <i
-                    style={{
-                      width: `${[72, 52, 64, 44][index]}%`,
-                    }}
-                  />
-                </div>
-
-                <small>Waiting for source values</small>
-
-              </div>
-
-            ))}
-
-          </div>
-
-        </section>
-
-      </div>
-
-
-      <div className="dashboard-bottom-grid">
-
-        <section className="dashboard-panel statement-panel">
-
-          <div className="panel-heading">
-
-            <div>
-              <h2>Statement coverage</h2>
-              <p>Report sections planned for this dashboard.</p>
-            </div>
-
-
-          </div>
-
-
-          {[
-            ["Income statement", "Revenue, costs, and profit"],
-            ["Balance sheet", "Assets, liabilities, and equity"],
-            [
-              "Cash flow statement",
-              "Operating, investing, and financing cash flows",
-            ],
-          ].map(([name, detail]) => (
-
-            <div className="statement-row" key={name}>
-
-              <span className="statement-icon">
-                <Icon name="file" size={18} />
-              </span>
-
-              <div>
-                <strong>{name}</strong>
-                <small>{detail}</small>
-              </div>
-
-
-            </div>
-
-          ))}
-
-        </section>
-
-
-        <aside className="dashboard-notice">
-
-          <div className="notice-icon">
-            <Icon name="shield" size={21} />
-          </div>
-
-          <div>
-
-            <h3>No financial figures are loaded</h3>
-
-            <p>
-              These panels are layout previews. Values and charts will appear
-              only after source data is connected, extracted, and checked.
-            </p>
-
-            <div className="notice-footer">
-              <span className="notice-dot" />
-              Source-linked figures only
-            </div>
-
-          </div>
-
-        </aside>
-
-      </div>
-
-    </main>
-  );
-}
-
-
-/* =========================================================
-   EVALUATION
-   ========================================================= */
-
-function EvaluationPage() {
-  const [selectedCategory, setSelectedCategory] =
-    useState("All categories");
-
-  const categories = [
-    "All categories",
-    "Profitability",
-    "Liquidity",
-    "Risk",
-    "Segments",
-  ];
-
-  const measures = [
-    {
-      title: "Numeric accuracy",
-      description:
-        "Compare extracted values with reviewed reference answers.",
-      icon: "chart",
-    },
-    {
-      title: "Citation correctness",
-      description:
-        "Check whether each citation points to the right report and page.",
-      icon: "file",
-    },
-    {
-      title: "Groundedness",
-      description:
-        "Assess whether the response is supported by retrieved report text.",
-      icon: "shield",
-    },
-    {
-      title: "Retrieval quality",
-      description:
-        "Measure whether relevant passages are found for each question.",
-      icon: "search",
-    },
-    {
-      title: "Abstention",
-      description:
-        "Check that Edith avoids unsupported answers when evidence is missing.",
-      icon: "check",
-    },
-  ];
-
-  const rows = [
-    "Profitability",
-    "Liquidity",
-    "Risk",
-    "Segments",
-  ].filter(
-    (item) =>
-      selectedCategory === "All categories" ||
-      selectedCategory === item,
-  );
-
-  return (
-    <main className="page inner-page evaluation-page">
-
-      <div className="page-title-row">
-
-        <div>
-          <div className="page-overline">
-            Quality and reliability
-          </div>
-
-          <h1>Evaluation</h1>
-
-          <p>
-            How answer quality will be tested before results are treated as
-            reliable.
-          </p>
-        </div>
-
-
-      </div>
-
-
-      <section className="evaluation-summary">
-
-        <div className="gauge-wrap">
-          <div className="evaluation-gauge">
-
-            <div className="gauge-center">
-              <strong>—</strong>
-              <span>Score</span>
-            </div>
-
-          </div>
-        </div>
-
-
-        <div className="evaluation-summary-copy">
-
-          <span className="summary-label">
-            Evaluation status
-          </span>
-
-          <h2>No results yet</h2>
-
-          <p>
-            Scores will be shown after testing Edith against a reviewed
-            evaluation set. This prototype does not report a performance
-            score.
-          </p>
-
-
-        </div>
-
-
-        <div className="evaluation-set-card">
-
-          <div className="set-card-icon">
-            <Icon name="book" size={20} />
-          </div>
-
-          <div>
-            <strong>Evaluation set</strong>
-
-            <span>
-              A reviewed question set, reference answers and source passages define the basis for reliability checks.
-            </span>
-
-          </div>
-
-        </div>
-
-      </section>
-
-
-      <section className="content-section evaluation-measures">
-
-        <SectionHeading
-          title="What will be assessed?"
-          description="Each measure addresses a different part of the evidence chain."
+        }
+      />
+
+      <div className="glance-grid">
+        {itemTile("revenue_from_operations", "Revenue from operations", "chart")}
+        {itemTile("profit_for_the_year", "Profit for the year", "layers")}
+
+        <GlanceTile
+          label="Net debt"
+          icon="shield"
+          loading={metrics.loading}
+          value={
+            <>
+              <small>₹</small>
+              <Value value={netDebt?.values[year] ?? null} />
+              <small>cr</small>
+            </>
+          }
+          source={
+            metrics.error
+              ? "Could not load"
+              : "Borrowings + lease liabilities − cash, bank balances and current investments"
+          }
         />
 
-        <div className="evaluation-card-grid">
+        <GlanceTile
+          label="Altman Z''"
+          icon="check"
+          loading={scores.loading}
+          value={<Value value={altman?.score ?? null} format={(value) => formatNumber(value, 4)} />}
+          detail={altman?.interpretation && sentenceCase(`${altman.interpretation} zone`)}
+          tone={zoneTone(altman?.interpretation)}
+          source={scores.error ? "Could not load" : altman?.thresholds}
+        />
 
-          {measures.map((measure, index) => (
-
-            <article
-              className="evaluation-measure-card"
-              key={measure.title}
-              style={{
-                "--delay": `${index * 75}ms`,
-              }}
-            >
-
-              <div className="measure-top">
-
-                <span className="measure-icon">
-                  <Icon name={measure.icon} size={21} />
-                </span>
-
-
-              </div>
-
-              <h3>{measure.title}</h3>
-
-              <p>{measure.description}</p>
-
-              <small className="measure-definition">Measure definition · no score recorded</small>
-
-            </article>
-
-          ))}
-
-        </div>
-
-      </section>
-
-
-      <div className="evaluation-lower-grid">
-
-        <section className="dashboard-panel category-panel">
-
-          <div className="panel-heading">
-
-            <div>
-              <h2>Results by question category</h2>
-
-              <p>
-                Once an evaluation set is available, results can be grouped
-                by question type.
-              </p>
-            </div>
-
-            <span className="panel-icon">
-              <Icon name="chart" size={20} />
-            </span>
-
-          </div>
-
-
-          <div
-            className="category-filter"
-            role="group"
-            aria-label="Filter question categories"
-          >
-
-            {categories.map((category) => (
-
-              <button
-                key={category}
-                className={
-                  selectedCategory === category
-                    ? "selected"
-                    : ""
-                }
-                onClick={() => setSelectedCategory(category)}
-              >
-                {category}
-              </button>
-
-            ))}
-
-          </div>
-
-
-          <div className="category-table">
-
-            <div className="category-table-head">
-              <span>Question category</span>
-            </div>
-
-            {rows.map((row) => (
-
-              <div
-                className="category-table-row"
-                key={row}
-              >
-                <span>{row}</span>
-
-              </div>
-
-            ))}
-
-          </div>
-
-        </section>
-
-
-        <section className="dashboard-panel flagged-panel">
-
-          <div className="panel-heading">
-
-            <div>
-              <h2>Flagged-answer review</h2>
-
-              <p>
-                A review queue can surface responses that need human checking.
-              </p>
-            </div>
-
-            <span className="panel-icon warning">
-              <Icon name="shield" size={20} />
-            </span>
-
-          </div>
-
-
-          <div className="flagged-empty">
-
-            <div className="flagged-empty-icon">
-              <Icon name="check" size={21} />
-            </div>
-
-            <div>
-              <strong>No reviewed answers yet</strong>
-
-              <p>
-                Flagged examples will appear here after evaluation runs.
-              </p>
-            </div>
-
-          </div>
-
-
-          <div className="flagged-placeholder">
-
-            <div className="flagged-placeholder-line" />
-            <div className="flagged-placeholder-line short" />
-
-            <small>
-              Example queue preview · no live evaluation records
-            </small>
-
-          </div>
-
-        </section>
-
+        <GlanceTile
+          label="Piotroski F"
+          icon="spark"
+          loading={scores.loading}
+          value={piotroski?.score == null ? <Value value={null} /> : `${piotroski.score}/9`}
+          detail={sentenceCase(piotroski?.interpretation)}
+          tone={zoneTone(piotroski?.interpretation)}
+          source={scores.error ? "Could not load" : piotroski?.thresholds}
+        />
       </div>
 
+      <div className="try-asking">
+        <span className="try-asking-label">
+          <Icon name="spark" size={16} />
+          Try asking
+        </span>
 
-      <section className="methodology-card">
-
-        <div className="methodology-icon">
-          <Icon name="layers" size={22} />
+        <div className="try-asking-chips">
+          {TRY_ASKING.map((item) => (
+            <button
+              key={item.question}
+              type="button"
+              className="question-chip"
+              onClick={() => onAskEdith(item.question)}
+              title={item.note || "Opens Ask Edith and sends this question"}
+            >
+              {item.question}
+            </button>
+          ))}
         </div>
-
-        <div>
-
-          <h2>How the evaluation will work</h2>
-
-          <p>
-            Create a reviewed set of questions with reference answers and
-            supporting report pages. Run Edith on those questions, then
-            compare the response, retrieved evidence and citations with the
-            reviewed references. Report results only after the test data and
-            scoring method have been defined.
-          </p>
-
-        </div>
-
-      </section>
-
-    </main>
+      </div>
+    </section>
   );
 }
 
@@ -1825,14 +880,14 @@ function Footer({ setActivePage }) {
         <Brand />
 
         <p>
-          A report-based research prototype. Financial figures will be
-          presented only when supported by connected and checked sources.
+          Figures come from Tata Steel's annual reports for FY2022-23 to
+          FY2025-26 and are verified against the source pages.
           For research and educational use, not investment advice.
         </p>
 
         <button
           className="footer-link"
-          onClick={() => setActivePage("Evaluation")}
+          onClick={() => setActivePage("Sources")}
         >
           Sources &amp; limitations
           <Icon name="arrow" size={15} />
@@ -1864,6 +919,18 @@ function Footer({ setActivePage }) {
 
 export default function App() {
   const [activePage, setActivePage] = useState("Home");
+  const chat = useConversations();
+
+  function goTo(page) {
+    setActivePage(page);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  // Open Ask Edith and send a question in a new conversation.
+  function askEdith(question) {
+    goTo("Ask Edith");
+    chat.send(question, { fresh: true });
+  }
 
   return (
     <div className="app-shell">
@@ -1879,24 +946,28 @@ export default function App() {
       >
 
         {activePage === "Home" && (
-          <HomePage setActivePage={setActivePage} />
+          <HomePage setActivePage={goTo} onAskEdith={askEdith} />
         )}
 
         {activePage === "Ask Edith" && (
-          <AskPage setActivePage={setActivePage} />
+          <AskPage setActivePage={goTo} chat={chat} />
         )}
 
         {activePage === "Dashboard" && (
-          <DashboardPage />
+          <DashboardPage setActivePage={goTo} onAskEdith={askEdith} />
         )}
 
         {activePage === "Evaluation" && (
           <EvaluationPage />
         )}
 
+        {activePage === "Sources" && (
+          <SourcesPage setActivePage={goTo} />
+        )}
+
       </div>
 
-      <Footer setActivePage={setActivePage} />
+      <Footer setActivePage={goTo} />
 
     </div>
   );
