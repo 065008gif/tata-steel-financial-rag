@@ -9,7 +9,7 @@ export default defineConfig({
     proxy: {
       // The FastAPI backend (Docker) — every call in src/api.js uses a relative /api/... path.
       '/api': {
-        target: 'http://127.0.0.1:8000',
+        target: process.env.VITE_API_TARGET || 'http://127.0.0.1:8000',   // teammate: set VITE_API_TARGET to the tunnel link
         changeOrigin: true,
         timeout: 300_000,
         proxyTimeout: 300_000,
